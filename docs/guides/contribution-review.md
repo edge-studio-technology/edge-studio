@@ -28,7 +28,7 @@ Move security concerns to the [private reporting route](../../SECURITY.md#report
 
 ## Pull-request checklist
 
-- Confirm contribution rights/terms before accepting external code. Licensing is an unresolved public-code launch gate; do not infer a license from a public repository or from a dependency's license.
+- Confirm the contributor has the right to submit the change under the project's [MIT contribution terms](../../CONTRIBUTING.md#before-contributing-code). Preserve applicable third-party licenses and notices; check compatibility when adding dependencies or copied material.
 - Confirm the feature PR targets upstream `dev`, solves a stated problem and has a Conventional title describing its result. Squash-merge features with that title; follow the [release guide](./releases.md) for merge promotions, release approval and main-to-dev synchronization.
 - Check the affected backend, UI, helper, installer, workflow and saved-data paths using the relevant recipe. Evaluate tests and operator docs together.
 - Require actual commands/results, including limitations. Request physical model/OS verification when accepting hardware claims. A mock, screenshot, AI explanation or passing linter is not a hardware result.
@@ -45,7 +45,7 @@ Use a separate topic branch and keep the working tree clean or deliberately comm
 
 ## Public launch and evidence checklist
 
-- [ ] Rights holders agree the project license and contribution terms; publish them and replace the pending notice in CONTRIBUTING.
+- [x] MIT license and contribution terms are defined in [LICENSE](../../LICENSE) and CONTRIBUTING (2026-11-16). Include them when publishing this branch to main.
 - [ ] Maintainers accept triage, review and guide/skill maintenance responsibility, including security-report handling.
 - [ ] Forms/config and guides reach default branch `main`; verify the actual chooser and each form in GitHub. A local schema check is useful but is not a rendering test.
 - [ ] A non-developer tries a request form and can explain what becomes public.

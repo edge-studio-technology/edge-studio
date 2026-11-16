@@ -4,7 +4,7 @@ This is an evidence checklist, not a completed trial. It verifies that the [publ
 
 ## Before starting
 
-- Settle the public-code contribution terms and confirm who can review the PR.
+- Read the [MIT contribution terms](../../CONTRIBUTING.md#before-contributing-code) and confirm who can review the PR.
 - Select an available physical device and a small public issue with a concrete result and related workflow behaviour. The maintainer and hardware owner agree scope and safe test actions.
 - Use a disposable Pi/SD card and the contributor's own accounts. No team credentials, private feedback or internal planning access should be needed.
 

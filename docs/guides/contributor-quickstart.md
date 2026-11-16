@@ -84,4 +84,4 @@ docker compose config
 
 Full checks include lint/docs, Knip, typechecking, coverage and package audits. Shell/release checks need their documented POSIX tools; run the Ubuntu CI route rather than weakening assertions to fit a Windows-only environment. Docker config/build requires a suitable local `.env` and daemon. A failed command stays a failed command: report the failure and successful focused checks separately, with enough detail to reproduce. Do not ignore audit/coverage failures or write “all tests passed” when a stage stopped early.
 
-For device changes start with the [device recipe](./contributing-devices.md); for runtime changes use the [workflow recipe](./contributing-workflows.md). Open a focused PR against `dev` after the contribution terms permit it.
+For device changes start with the [device recipe](./contributing-devices.md); for runtime changes use the [workflow recipe](./contributing-workflows.md). Open a focused PR against `dev` under the MIT contribution terms.

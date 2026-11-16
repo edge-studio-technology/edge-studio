@@ -1,13 +1,13 @@
 # GitHub Contributions Plan
 
-**Status:** In progress — forms, guides, review process and AI skill published on main; app links included in v0.44.0. Licensing/ownership, human form/external-fork checks, independent harness/contributor and physical Pi acceptance remain open.
+**Status:** In progress — forms, guides, review process and AI skill published on main; app links included in v0.44.0. MIT licensing is defined; ownership, human form/external-fork checks, independent harness/contributor and physical Pi acceptance remain open.
 **Created:** 2026-11-04  
 **Branch:** `github-contributions`, created from the fetched `origin/dev`.  
 **Goal:** Help users request improvements publicly, develop capabilities in their own repository copy, and contribute tested changes for the team to review and release.
 
 ## Progress
 
-- [ ] 1. Agree contribution rules, public/private request handling and licensing/contribution terms (A1): CONTRIBUTING and review guidance implemented; rights-holder agreement and explicit ownership acceptance remain open.
+- [ ] 1. Agree contribution rules, public/private request handling and licensing/contribution terms (A1): CONTRIBUTING and review guidance implemented; MIT license and contribution terms defined; explicit ownership acceptance remains open.
 - [x] 2. Provide approachable public GitHub issue forms (A2): four forms/chooser added and locally validated. Live rendering requires publication to default branch `main` and a user walkthrough.
 - [x] 3. Link Edge Studio to public requests and contribution guidance (A3): fixed destinations, privacy regression and responsive browser checks pass; public guide/form availability follows release to `main`.
 - [ ] 4. Define and verify community pull-request review and release handling (A4): PR template/process implemented and existing read-only workflows/rulesets inspected; real external-fork CI/review trial pending.
@@ -17,7 +17,7 @@
 - [x] 8. Publish workflow block, execution and event integration recipes (B4): implemented with Fetch data source trace and validation/runtime/history boundaries; public release pending.
 - [ ] 9. Provide a portable contribution AI skill backed by the public guides (B5): entry skill and mirrors implemented, format and references verified; a fresh supported-harness trial remains pending.
 - [ ] 10. Prove the complete contribution journey with a new contributor (B6): trial checklist provided; no independent human or physical integration trial has taken place.
-- [ ] Docs: public entry points and skill mirrors implemented; ownership/licensing notices must be finalized before launch.
+- [ ] Docs: public entry points and skill mirrors implemented; MIT license and contribution terms defined; named ownership must be finalized before launch.
 - [ ] Verification: local privacy/browser/forms/skill/build/clean-checkout checks pass; external/hardware acceptance gates remain open.
 
 **Implementation evidence:** [2026-11-05 verification record](../reports/github-contributions-implementation-2026-11-05/README.md). Checked items describe branch implementation, not completed public-launch or independent-contributor acceptance.
@@ -74,7 +74,7 @@ Create a root CONTRIBUTING.md as the public starting point and a concise public 
 
 Define public request states such as needs information, ready for contribution, in progress and released/closed, with a small label set and a named maintainer triage responsibility. Keep duplicates linked, explain decisions, and show what help a contributor or hardware owner can provide. Do not promise response times without an agreed owner/capacity.
 
-Agree the project license and contributor rights/terms with the rights holders before actively launching public code contributions. No license is selected by this plan. Provide a separate private security-reporting route using `SECURITY.md`. Clarify the GitHub-account requirement for submitting issues/PRs and the difference between public posts and private app feedback.
+The project owner selected MIT on 2026-11-16. The root LICENSE covers project code and documentation; CONTRIBUTING defines contributions under the same MIT terms with retained contributor copyrights and no separate CLA, DCO or copyright assignment. Preserve third-party licenses and notices. See [ADR 0043](../adr/0043-license-edge-studio-under-mit.md). Provide a separate private security-reporting route using `SECURITY.md`. Clarify the GitHub-account requirement for submitting issues/PRs and the difference between public posts and private app feedback.
 
 Acceptance: a reader can determine where to report a bug, propose a feature, report a security concern, keep a local fork or submit a PR; public launch has agreed licensing/terms and triage/review owners.
 
@@ -162,7 +162,7 @@ Acceptance: the contributor completes the public journey without private team to
 
 Start A1 and B1/B2 together. A2 depends on A1's request/privacy policy; A3 depends on working public destinations and B1's contributor entry point. B3/B4 use the verified architecture/quickstart. B5 follows the guides and refines them through a clean trial. A4 coordinates the rules, CI and evidence expectations. B6 is the final combined journey gate.
 
-Before public launch, name maintainers for triage, review, docs and skills, settle licensing/contribution terms, confirm repository visibility/issues settings and branch targets, and agree minimum hardware evidence for accepted support. Choose an initial physical example with available hardware during implementation, not by inventing a new supported device in this plan.
+Before public launch, name maintainers for triage, review, docs and skills, apply the MIT contribution terms, confirm repository visibility/issues settings and branch targets, and agree minimum hardware evidence for accepted support. Choose an initial physical example with available hardware during implementation, not by inventing a new supported device in this plan.
 
 Success measures: every public route works; every documented source path/check is verified; clean local and fork-to-Pi builds show the contributor's change; one independent contribution passes the review journey; a non-developer can submit a useful public request; no private submission is exposed. Do not invent commercial/adoption targets or delivery estimates before work is sized.
 

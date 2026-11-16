@@ -4,7 +4,7 @@ Help us understand a problem, improve a guide, test hardware, or develop a chang
 
 ## Before contributing code
 
-**Licensing and contribution terms are not yet agreed.** This checkout does not grant a project-wide open-source license. Ask the maintainers to resolve the applicable rights before submitting code for inclusion; maintainers must not merge external code without agreed terms. This guide is a development and review process, not a license, copyright assignment, CLA or DCO. Third-party dependencies retain their own licenses. Public bug reports and feature discussions can proceed without including contributed code.
+Edge Studio code and documentation are licensed under the [MIT License](LICENSE). By submitting a contribution for inclusion, you agree to license it under the same MIT terms and confirm that you have the right to do so. You retain copyright in your contribution. No separate CLA, DCO or copyright assignment is required. Preserve applicable third-party license and copyright notices; dependencies and separately licensed third-party material retain their own terms.
 
 ## Choose your route
 
@@ -26,7 +26,7 @@ GitHub accounts are required to submit or comment; public issues can be read wit
 
 Search existing issues first. Describe the result you need, what happens now, and an example. For a device, include its model and public documentation, and whether you can help test it. You can write “Unknown” for details you cannot find. Do not include credentials, wallet recovery information, device backups, full feedback/log exports, private payloads or personal details. Check screenshots before attaching them.
 
-For a large change, new dependency, driver or architectural change, discuss the approach before investing substantial work. Small focused fixes may go straight to a draft pull request, subject to the contribution-terms gate above. Comment before taking an issue so people can coordinate; a comment alone does not reserve it indefinitely.
+For a large change, new dependency, driver or architectural change, discuss the approach before investing substantial work. Small focused fixes may go straight to a draft pull request under the MIT contribution terms above. Comment before taking an issue so people can coordinate; a comment alone does not reserve it indefinitely.
 
 ## Develop and propose a change
 

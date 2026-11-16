@@ -17,10 +17,10 @@ Do not claim physical hardware verification from mocked tests. AI-assisted chang
 
 ## Documentation and review
 
-- [ ] I read [CONTRIBUTING.md](https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md), including the current licensing/contribution status.
+- [ ] I read [CONTRIBUTING.md](https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md), and have the right to submit this contribution under its MIT terms, preserving applicable third-party notices.
 - [ ] Relevant setup guides, configuration docs and tests are included; release-please will prepare the version and release notes.
 - [ ] The title uses a Conventional type, for example `feat(devices): support a new sensor`; breaking changes use `!` and explain migration.
 - [ ] No credentials, private feedback, diagnostic archives or personal data are included.
 - [ ] This PR targets `dev`; accepted changes follow normal review and release.
 
-Maintainers: confirm the contribution terms permit acceptance before merging code. A passing check is not automatic approval or evidence of a production release.
+Maintainers: check contribution rights, MIT compatibility and third-party notices before merging code. A passing check is not automatic approval or evidence of a production release.

@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- 2026-11-16 licensing: added the standard MIT license for Edge Studio code/docs, matching license metadata in all four package manifests and lockfile roots, explicit inbound MIT contribution terms and ADR 0043. Preserved third-party terms and historical reports; named maintainers and independent contribution/hardware trials remain open. No dependency, version or runtime changes.
+- Verification: documentation lint and whitespace checks passed; semantic comparison against HEAD confirmed all eight package/lockfile changes only add the project MIT license field. Reviewed the standard license text and copyright notice. Runtime tests were not rerun for this licensing/documentation change.
+
 - 2026-11-16 contextual links: added feedback-owned CapabilitySupportLinks to Devices/Workflows list footers and compact request links to the device picker and workflow toolkit. Public requests and matching contribution guides use fixed safe new-tab URLs without private context. Device-picker links stop appearing during configuration. Updated usage/contribution guidance and retired the completed plan.
 - Verification: all 60 relevant list/picker/toolkit tests and all 1,840 frontend tests passed (92.33% line coverage), as did frontend lint/typecheck/build, docs and whitespace checks. Isolated populated list/toolkit previews passed at 1440/390 px and the existing desktop-only wizard at 1440 px, without new-link overflow, runtime exceptions or API writes. Synthetic screenshots/results are recorded in the contextual-links report; temporary previews were removed/stopped. No backend or GitHub settings changed, and no hardware action/public issue/feedback submission occurred.
 
