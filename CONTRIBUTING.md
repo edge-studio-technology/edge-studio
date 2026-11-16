@@ -14,7 +14,7 @@ Help us understand a problem, improve a guide, test hardware, or develop a chang
 | Request a device, workflow feature or other improvement | [Public request forms](https://github.com/edge-studio-technology/edge-studio/issues/new/choose) |
 | Find something to help with | [Browse requests](https://github.com/edge-studio-technology/edge-studio/issues) and read the maintainer's latest scope/availability comment |
 | Report a security concern | Follow [the private reporting policy](SECURITY.md#reporting-a-vulnerability), not a public issue |
-| Send private feedback | Use **Send feedback** in the app; its Integritas consent and availability rules still apply |
+| Ask a general question or send private feedback | Use **Help & feedback → Send quick feedback** in the app; its Integritas consent and availability rules still apply |
 | Run a modified build | [Contributor quickstart](docs/guides/contributor-quickstart.md) |
 | Add hardware/device support | [Device integration recipe](docs/guides/contributing-devices.md) |
 | Add workflow behaviour | [Workflow integration recipe](docs/guides/contributing-workflows.md) |

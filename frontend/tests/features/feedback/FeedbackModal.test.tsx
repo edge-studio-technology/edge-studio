@@ -91,6 +91,12 @@ function renderModal(props: Partial<{ pagePath: string; pageLabel: string; onClo
   return onClose;
 }
 
+async function renderQuickFeedback(props: Parameters<typeof renderModal>[0] = {}) {
+  const onClose = renderModal(props);
+  await userEvent.click(screen.getByRole("button", { name: "Send quick feedback" }));
+  return onClose;
+}
+
 async function openWhatWeSaveDisclosure() {
   await userEvent.click(screen.getByText("What we save with this feedback"));
 }
@@ -106,30 +112,66 @@ afterEach(() => {
 });
 
 describe("FeedbackModal", () => {
-  it("keeps public contribution links independent of private feedback contents and availability", async () => {
-    mockLoad({ config: "reject" });
+  it("shows public routes without loading or submitting private feedback", () => {
     renderModal({ pagePath: "/wallet?private=never-share", pageLabel: "Private test page" });
-    await userEvent.type(screen.getByLabelText("Description"), "Private device details must stay here");
-
+    expect(screen.getByRole("dialog", { name: "Help & feedback" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Description")).not.toBeInTheDocument();
+    const base = "https://github.com/edge-studio-technology/edge-studio/";
     const destinations = [
-      ["Browse community requests", "https://github.com/edge-studio-technology/edge-studio/issues"],
-      ["Submit a public request", "https://github.com/edge-studio-technology/edge-studio/issues/new/choose"],
-      ["Contribution guide", "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md"],
+      ["Report a problem", "issues/new?template=bug-report.yml"],
+      ["Request hardware support", "issues/new?template=device-support.yml"],
+      ["Request a workflow feature", "issues/new?template=workflow-request.yml"],
+      ["Suggest an improvement", "issues/new?template=improvement.yml"],
+      ["Report privately", "security/advisories/new"],
+      ["Browse community requests", "issues"],
+      ["Contribution guide", "blob/main/CONTRIBUTING.md"],
     ];
-    for (const [name, href] of destinations) {
+    for (const [name, path] of destinations) {
       const link = screen.getByRole("link", { name });
-      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("href", base + path);
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
     }
-    expect(screen.getByText(/Nothing from this feedback form is copied there/)).toBeInTheDocument();
+    expect(screen.getByText(/No device details or feedback drafts are copied to GitHub/)).toBeInTheDocument();
+    expect(getJson).not.toHaveBeenCalled();
     expect(postJson).not.toHaveBeenCalled();
   });
 
-  it("renders the page context, default bug fields, and pre-submit message once config loads", async () => {
-    renderModal({ pagePath: "/wallet", pageLabel: "Wallet" });
+  it("preserves a private question draft when navigating back to the chooser", async () => {
+    const user = userEvent.setup();
+    await renderQuickFeedback();
+    await user.selectOptions(screen.getByLabelText("Feedback type"), "question");
+    await user.type(screen.getByLabelText("Description"), "Private setup question");
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("dialog", { name: "Help & feedback" })).toBeInTheDocument();
+    for (const link of screen.getAllByRole("link")) {
+      expect(link.getAttribute("href")).not.toContain("Private");
+    }
+    await user.click(screen.getByRole("button", { name: "Send quick feedback" }));
+    expect(screen.getByLabelText("Feedback type")).toHaveValue("question");
+    expect(screen.getByLabelText("Description")).toHaveValue("Private setup question");
+    expect(postJson).not.toHaveBeenCalled();
+  });
 
-    expect(screen.getByText("Send feedback")).toBeInTheDocument();
+  it("sends a general question through private feedback and prevents Back during submission", async () => {
+    const user = userEvent.setup();
+    postJson.mockReturnValue(new Promise(() => {}));
+    await renderQuickFeedback();
+    await user.selectOptions(screen.getByLabelText("Feedback type"), "question");
+    await user.type(screen.getByLabelText("Description"), "How do I set up my device?");
+    await user.click(screen.getByRole("checkbox", { name: /I agree to send this feedback/ }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    expect(postJson).toHaveBeenCalledWith("/api/feedback", expect.objectContaining({
+      type: "question", description: "How do I set up my device?", hostedConsent: true,
+    }));
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("renders the page context, default bug fields, and pre-submit message once config loads", async () => {
+    await renderQuickFeedback({ pagePath: "/wallet", pageLabel: "Wallet" });
+
+    expect(screen.getByText("Quick feedback")).toBeInTheDocument();
     expect(screen.getByText("Wallet", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByText("/wallet")).toBeInTheDocument();
 
@@ -144,7 +186,7 @@ describe("FeedbackModal", () => {
   });
 
   it("shows exported device/account metadata inside the what-we-save disclosure", async () => {
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
     await openWhatWeSaveDisclosure();
 
@@ -163,7 +205,7 @@ describe("FeedbackModal", () => {
 
   it("falls back to placeholders and disables submission when export/config fetches fail", async () => {
     mockLoad({ exportDoc: "reject", config: "reject" });
-    renderModal();
+    await renderQuickFeedback();
 
     expect(await screen.findByText("Feedback delivery is unavailable.")).toBeInTheDocument();
     await openWhatWeSaveDisclosure();
@@ -178,7 +220,7 @@ describe("FeedbackModal", () => {
     mockLoad({
       config: { hostedFeedbackEnabled: true, hostedFeedbackAvailable: false, integritasApiKeyConfigured: false, endpoint: "" },
     });
-    renderModal();
+    await renderQuickFeedback();
 
     expect(
       await screen.findByText("Feedback requires an Integritas API key before it can be submitted."),
@@ -189,7 +231,7 @@ describe("FeedbackModal", () => {
 
   it("switches type-specific fields between bug, feature request, and neither", async () => {
     const user = userEvent.setup();
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.selectOptions(screen.getByLabelText("Feedback type"), "feature_request");
@@ -204,7 +246,7 @@ describe("FeedbackModal", () => {
 
   it("requires a description before submitting", async () => {
     const user = userEvent.setup();
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.click(screen.getByRole("button", { name: "Submit" }));
@@ -215,7 +257,7 @@ describe("FeedbackModal", () => {
 
   it("requires hosted consent before submitting, and clears the error once checked", async () => {
     const user = userEvent.setup();
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.type(screen.getByLabelText("Description"), "Something broke");
@@ -246,7 +288,7 @@ describe("FeedbackModal", () => {
         lastError: null,
       },
     });
-    const onClose = renderModal({ pagePath: "/wallet", pageLabel: "Wallet" });
+    const onClose = await renderQuickFeedback({ pagePath: "/wallet", pageLabel: "Wallet" });
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.type(screen.getByLabelText("Description"), "  Something broke  ");
@@ -300,7 +342,7 @@ describe("FeedbackModal", () => {
         lastError: null,
       },
     });
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.selectOptions(screen.getByLabelText("Feedback type"), "feature_request");
@@ -333,7 +375,7 @@ describe("FeedbackModal", () => {
         lastError: null,
       },
     });
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.type(screen.getByLabelText("Description"), "Question about setup");
@@ -349,7 +391,7 @@ describe("FeedbackModal", () => {
   it("shows an error toast and inline error, and keeps the form open, when submission fails", async () => {
     const user = userEvent.setup();
     postJson.mockRejectedValue(new Error("Server exploded"));
-    renderModal();
+    await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.type(screen.getByLabelText("Description"), "Something broke");
@@ -365,7 +407,7 @@ describe("FeedbackModal", () => {
 
   it("calls onClose when Cancel is clicked", async () => {
     const user = userEvent.setup();
-    const onClose = renderModal();
+    const onClose = await renderQuickFeedback();
     await screen.findByText("Feedback will be sent to Integritas.");
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));

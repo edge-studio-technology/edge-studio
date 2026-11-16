@@ -255,7 +255,7 @@ export function AppShellSidebar({
             >
               <MessageCircle size={16} className="shrink-0" />
               <CollapsibleLabel collapsed={collapsed} className="type-body">
-                Feedback
+                Help & feedback
               </CollapsibleLabel>
             </button>
           </div>

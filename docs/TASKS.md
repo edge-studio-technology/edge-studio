@@ -15,6 +15,7 @@
 
 ## In Progress
 
+
 - [ ] Finish GitHub contribution launch (epics #1249/#1250): forms/guides/policies are published on main and app links are included in v0.44.0. Licensing/ownership, real form walkthrough/external-fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
 - [ ] Finish Edge Studio storage/history lifecycle: inventory, archive export/import and opt-in retention controls are implemented and the user confirmed recommended Pi verification; manual cleanup, size-based triggers and verification of the remaining features are still open; see `docs/plans/storage-history-lifecycle.md`.
 
@@ -73,6 +74,8 @@
 - [ ] Sanity-check two catalog exclusions added beyond the Minima RPC console plan's named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material).
 
 ## Done
+
+- [x] Added Help & feedback with direct public GitHub/security routes and private Quick feedback, lazy private metadata/configuration, general questions, consent and preserved Back drafts. Verified 44 focused tests, all application coverage suites, frontend build and mocked browser layouts at 1440/768/390 px. Full local check retains documented Windows root-script failures; Ubuntu CI remains required before merge. See [verification](./reports/help-feedback-2026-11-16/README.md).
 
 - [x] Adopted release-please while retaining dev contributions; published approved v0.44.0 through the dedicated App, verified signed artifact/public manifest/runtime publication, preserved existing branch protections and reconciled legacy release notes. The main-based completion merge carries the released version and main ancestry back into dev. See [publication evidence](./reports/release-please-publication-2026-11-06/README.md) and [release guide](./guides/releases.md); the finished implementation plan is retired.
 

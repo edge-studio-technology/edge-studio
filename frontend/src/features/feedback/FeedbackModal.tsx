@@ -15,6 +15,14 @@ import { useToast } from "../../components/ToastProvider";
 
 const FEEDBACK_FORM_ID = "feedback-form";
 
+const communityRoutes = [
+  ["Something is not working", "Report a problem", "issues/new?template=bug-report.yml"],
+  ["A device is not supported", "Request hardware support", "issues/new?template=device-support.yml"],
+  ["A workflow capability is missing", "Request a workflow feature", "issues/new?template=workflow-request.yml"],
+  ["You have an idea for the app", "Suggest an improvement", "issues/new?template=improvement.yml"],
+  ["You found a security vulnerability", "Report privately", "security/advisories/new"],
+];
+
 const feedbackTypes = [
   { value: "bug", label: "Bug" },
   { value: "ux_issue", label: "UX issue" },
@@ -141,6 +149,7 @@ export function FeedbackModal({
   onClose: () => void;
 }) {
   const { showToast } = useToast();
+  const [view, setView] = useState<"chooser" | "quick">("chooser");
   const [type, setType] = useState("bug");
   const [area, setArea] = useState("current_page");
   const [bugSeverity, setBugSeverity] = useState("medium");
@@ -160,6 +169,7 @@ export function FeedbackModal({
   const browser = useState(getBrowserContext)[0];
 
   useEffect(() => {
+    if (view !== "quick") return;
     let cancelled = false;
     getJson<FeedbackExportDoc>("/api/feedback/export")
       .then((result) => {
@@ -178,7 +188,7 @@ export function FeedbackModal({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [view]);
 
   async function submitFeedback(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -239,9 +249,68 @@ export function FeedbackModal({
     }
   }
 
+  if (view === "chooser") {
+    return (
+      <Modal title="Help & feedback" onClose={onClose}
+        footer={
+          <section aria-labelledby="feedback-quick-title" className="border-stroke-secondary gap-detail-close pt-detail-close grid w-full border-t">
+            <h3 id="feedback-quick-title" className="type-body-em text-text-primary m-0">Quick feedback</h3>
+            <p className="type-body text-text-secondary m-0">
+              Ask a general question or send informal feedback privately to the Edge Studio team.
+              No GitHub account is needed. This does not create a public issue.
+            </p>
+            <div className="gap-detail-close flex flex-wrap justify-between">
+              <Button onClick={() => setView("quick")}>Send quick feedback</Button>
+              <Button variant="secondary" onClick={onClose}>Close</Button>
+            </div>
+          </section>
+        }>
+        <div className="gap-margin-tight grid">
+          <section aria-labelledby="feedback-community-title" className="gap-detail-close grid">
+            <h3 id="feedback-community-title" className="type-body-em text-text-primary m-0">Community & support</h3>
+            <p className="type-body text-text-secondary m-0">
+              Public GitHub requests let other users discuss needs and contribute solutions.
+              A GitHub account is required to submit. Security reports use a private route.
+              No device details or feedback drafts are copied to GitHub.
+            </p>
+            <table className="type-body w-full text-left">
+              <caption className="sr-only">Choose a GitHub request or private security report</caption>
+              <thead>
+                <tr className="border-stroke-secondary border-b">
+                  <th scope="col" className="py-detail-tight pr-detail-close font-medium">What would you like to do?</th>
+                  <th scope="col" className="py-detail-tight font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {communityRoutes.map(([description, label, path]) => (
+                  <tr key={path} className="border-stroke-secondary border-b">
+                    <td className="py-detail-close pr-detail-close align-top text-text-secondary">{description}</td>
+                    <td className="py-detail-close align-top">
+                      <a className="text-text-primary underline underline-offset-2"
+                        href={`https://github.com/edge-studio-technology/edge-studio/${path}`}
+                        target="_blank" rel="noopener noreferrer">{label}</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="type-body gap-detail-close flex flex-wrap">
+              <a className="text-text-primary underline underline-offset-2"
+                href="https://github.com/edge-studio-technology/edge-studio/issues"
+                target="_blank" rel="noopener noreferrer">Browse community requests</a>
+              <a className="text-text-primary underline underline-offset-2"
+                href="https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md"
+                target="_blank" rel="noopener noreferrer">Contribution guide</a>
+            </div>
+          </section>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
-      title="Send feedback"
+      title="Quick feedback"
       onClose={onClose}
       footer={
         saved ? (
@@ -262,6 +331,7 @@ export function FeedbackModal({
               />
               {consentError ? <p className="type-body text-text-error mt-detail-fine mb-0">{consentError}</p> : null}
             </div>
+            <Button variant="secondary" className="mr-auto" disabled={submitting} onClick={() => setView("chooser")}>Back</Button>
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
@@ -272,30 +342,6 @@ export function FeedbackModal({
         )
       }
     >
-      <section aria-label="Community requests and contributions" className="gap-detail-tight mb-margin-tight grid">
-        <h3 className="type-body-em text-text-primary m-0">Community requests and contributions</h3>
-        <p className="type-body text-text-secondary m-0">
-          Browse public requests or ask the community for help on GitHub. A GitHub account is needed to post.
-          Nothing from this feedback form is copied there.
-        </p>
-        <div className="type-body gap-detail-tight flex flex-wrap">
-          <a className="text-text-primary underline underline-offset-2"
-            href="https://github.com/edge-studio-technology/edge-studio/issues"
-            target="_blank" rel="noopener noreferrer">
-            Browse community requests
-          </a>
-          <a className="text-text-primary underline underline-offset-2"
-            href="https://github.com/edge-studio-technology/edge-studio/issues/new/choose"
-            target="_blank" rel="noopener noreferrer">
-            Submit a public request
-          </a>
-          <a className="text-text-primary underline underline-offset-2"
-            href="https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md"
-            target="_blank" rel="noopener noreferrer">
-            Contribution guide
-          </a>
-        </div>
-      </section>
       {saved ? (
         <div className="gap-detail-close grid">
           <div className="border-stroke-success bg-surface-always-white rounded-soft relative flex items-start overflow-clip border">

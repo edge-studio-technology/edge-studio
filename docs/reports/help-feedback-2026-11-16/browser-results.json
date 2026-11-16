@@ -1,0 +1,165 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "links": [
+        {
+          "text": "Report a problem",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=bug-report.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Request hardware support",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Request a workflow feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Suggest an improvement",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=improvement.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Report privately",
+          "href": "https://github.com/edge-studio-technology/edge-studio/security/advisories/new",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Browse community requests",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true,
+      "formVisible": false
+    },
+    {
+      "width": 768,
+      "links": [
+        {
+          "text": "Report a problem",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=bug-report.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Request hardware support",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Request a workflow feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Suggest an improvement",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=improvement.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Report privately",
+          "href": "https://github.com/edge-studio-technology/edge-studio/security/advisories/new",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Browse community requests",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true,
+      "formVisible": false
+    },
+    {
+      "width": 390,
+      "links": [
+        {
+          "text": "Report a problem",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=bug-report.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Request hardware support",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Request a workflow feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Suggest an improvement",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=improvement.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Report privately",
+          "href": "https://github.com/edge-studio-technology/edge-studio/security/advisories/new",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Browse community requests",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true,
+      "formVisible": false
+    }
+  ],
+  "runtimeErrors": [],
+  "apiWrites": [],
+  "privateReads": [
+    "http://127.0.0.1:4343/api/feedback/export",
+    "http://127.0.0.1:4343/api/feedback/config"
+  ],
+  "quickForm": {
+    "visible": true,
+    "back": true,
+    "overflow": false
+  }
+}

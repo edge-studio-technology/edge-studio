@@ -46,7 +46,7 @@ describe("AppShellSidebar", () => {
   it("calls onFeedback when the feedback button is clicked", async () => {
     const onFeedback = vi.fn();
     renderSidebar({ onFeedback });
-    await userEvent.click(screen.getByRole("button", { name: "Feedback" }));
+    await userEvent.click(screen.getByRole("button", { name: "Help & feedback" }));
     expect(onFeedback).toHaveBeenCalledOnce();
   });
 

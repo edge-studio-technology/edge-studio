@@ -132,7 +132,7 @@ describe("AppShell", () => {
     renderShell();
     await act(async () => {});
 
-    await userEvent.click(screen.getByRole("button", { name: "Feedback" }));
+    await userEvent.click(screen.getByRole("button", { name: "Help & feedback" }));
     expect(screen.getByRole("dialog", { name: "Feedback modal stub" })).toBeInTheDocument();
     expect(screen.getByText("path:/dashboard")).toBeInTheDocument();
     expect(screen.getByText("label:Dashboard")).toBeInTheDocument();
