@@ -252,16 +252,16 @@ export function FeedbackModal({
   if (view === "chooser") {
     return (
       <Modal title="Help & feedback" onClose={onClose}
+        description="Choose a public GitHub request to involve the community, or send quick feedback privately to the Edge Studio team."
         footer={
-          <section aria-labelledby="feedback-quick-title" className="border-stroke-secondary gap-detail-close pt-detail-close grid w-full border-t">
+          <section aria-labelledby="feedback-quick-title" className="border-stroke-secondary bg-surface-primary rounded-soft p-pad-close gap-detail-close grid w-full border">
             <h3 id="feedback-quick-title" className="type-body-em text-text-primary m-0">Quick feedback</h3>
             <p className="type-body text-text-secondary m-0">
               Ask a general question or send informal feedback privately to the Edge Studio team.
               No GitHub account is needed. This does not create a public issue.
             </p>
-            <div className="gap-detail-close flex flex-wrap justify-between">
+            <div>
               <Button onClick={() => setView("quick")}>Send quick feedback</Button>
-              <Button variant="secondary" onClick={onClose}>Close</Button>
             </div>
           </section>
         }>
@@ -313,11 +313,7 @@ export function FeedbackModal({
       title="Quick feedback"
       onClose={onClose}
       footer={
-        saved ? (
-          <Button variant="secondary" onClick={onClose}>
-              Close
-          </Button>
-        ) : (
+        saved ? undefined : (
           <>
             <div className="basis-full">
               <CheckboxField

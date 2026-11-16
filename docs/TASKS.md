@@ -75,7 +75,7 @@
 
 ## Done
 
-- [x] Added Help & feedback with direct public GitHub/security routes and private Quick feedback, lazy private metadata/configuration, general questions, consent and preserved Back drafts. Verified 44 focused tests, all application coverage suites, frontend build and mocked browser layouts at 1440/768/390 px. Full local check retains documented Windows root-script failures; Ubuntu CI remains required before merge. See [verification](./reports/help-feedback-2026-11-16/README.md).
+- [x] Added Help & feedback with direct public GitHub/security routes and private Quick feedback, matching containers, a public/private introduction and X dismissal, lazy private metadata/configuration, general questions, consent and preserved Back drafts. Verified 44 focused tests, all application coverage suites, frontend build and mocked browser layouts at 1440/768/390 px. Full local check retains documented Windows root-script failures; Ubuntu CI remains required before merge. See [verification](./reports/help-feedback-2026-11-16/README.md).
 
 - [x] Adopted release-please while retaining dev contributions; published approved v0.44.0 through the dedicated App, verified signed artifact/public manifest/runtime publication, preserved existing branch protections and reconciled legacy release notes. The main-based completion merge carries the released version and main ancestry back into dev. See [publication evidence](./reports/release-please-publication-2026-11-06/README.md) and [release guide](./guides/releases.md); the finished implementation plan is retired.
 
