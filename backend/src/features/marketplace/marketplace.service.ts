@@ -50,6 +50,7 @@ export async function marketplaceRequest(method: string, path: string, actor: Ma
           ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
+        redirect: "error", // the key is never sent on to another address
       },
       REQUEST_TIMEOUT_MS
     );
@@ -59,11 +60,13 @@ export async function marketplaceRequest(method: string, path: string, actor: Ma
   }
 }
 
-/** Constant-time check of the delivery service's `Authorization: Bearer <secret>`; refuses all when unset. */
+/** Constant-time check of the delivery service's `Authorization: Bearer <secret>`. Refuses all while the secret
+ * is unset or shorter than 32 characters: whoever holds it decides where buyers are sent. */
+export const MIN_DELIVERY_SECRET_LENGTH = 32;
 export function isDeliveryAuthorized(header: string | undefined) {
   const secret = env.marketplaceDeliverySecret;
   const given = /^Bearer (\S+)$/.exec(header ?? "")?.[1];
-  if (!secret || !given) return false;
+  if (!secret || secret.length < MIN_DELIVERY_SECRET_LENGTH || !given) return false;
   const digest = (value: string) => crypto.createHash("sha256").update(value).digest();
   return crypto.timingSafeEqual(digest(given), digest(secret));
 }
@@ -102,13 +105,16 @@ const system: MarketplaceActor = { userId: SYSTEM_USER_ID, role: "owner" };
 /** Pushes one source (or removes it when deleted or an output target). True when it should be retried. */
 async function pushSource(id: string, nodeKey: () => Promise<string | null>) {
   const path = `/api/integration/sources/${encodeURIComponent(id)}`;
+  // The node key is read first and the source after it: a source deleted during that wait is removed, never
+  // pushed again with stale data.
+  const key = getDataSource(id) ? await nodeKey() : null;
   const source = getDataSource(id);
   let result: MarketplaceResult;
   if (!source || isOutputTarget(source)) {
     result = await marketplaceRequest("DELETE", path, system);
     if (result.status === 404) return false;
   } else {
-    const body = sourcePushBody(source, await nodeKey());
+    const body = sourcePushBody(source, key);
     if (!body) return true;
     result = await marketplaceRequest("PUT", path, system, body);
   }
@@ -119,9 +125,14 @@ async function pushSource(id: string, nodeKey: () => Promise<string | null>) {
 
 const queued = new Set<string>();
 let timer: NodeJS.Timeout | null = null;
+let dueAt = 0;
+let running = false; // one flush at a time
 
+// A sooner push replaces a later one already planned (a new change is not held behind a 60 s retry).
 function schedule(delayMs: number) {
-  if (timer) return;
+  if (timer && dueAt <= Date.now() + delayMs) return;
+  if (timer) clearTimeout(timer);
+  dueAt = Date.now() + delayMs;
   timer = setTimeout(() => void flushMarketplaceSync(), delayMs);
   timer.unref?.();
 }
@@ -134,7 +145,11 @@ export function queueMarketplaceSourceSync(...ids: string[]) {
 }
 
 export async function flushMarketplaceSync() {
+  if (running) return; // the running flush, or the push it schedules, picks up what was queued meanwhile
+  running = true;
+  if (timer) clearTimeout(timer);
   timer = null;
+  try {
   let key: Promise<string | null> | null = null;
   const nodeKey = () => (key ??= readNodePublicKey());
   let retry = false;
@@ -147,6 +162,9 @@ export async function flushMarketplaceSync() {
   }
   // ponytail: in-memory queue; a restart drops pending removals (start-up pushes current sources again).
   if (retry) schedule(SYNC_RETRY_MS);
+  } finally {
+    running = false;
+  }
 }
 
 export function startMarketplaceSourceSync() {

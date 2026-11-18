@@ -33,7 +33,7 @@ describe("MarketplacePage", () => {
     api.getMarketplaceStatus.mockResolvedValue({ configured: true, url: "https://market.example", role: "owner" });
     api.getPublisherListings.mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText("Marketplace configured: connected to https://market.example.")).toBeInTheDocument();
+    expect(await screen.findByText("Marketplace configured: https://market.example.")).toBeInTheDocument();
     expect(await screen.findByText("No listings yet")).toBeInTheDocument();
   });
 

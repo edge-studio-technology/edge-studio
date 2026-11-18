@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import express from "express";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 const KEY = "esk_installation-key-for-route-tests";
-const SECRET = "delivery-secret-for-route-tests";
+const SECRET = "delivery-secret-for-route-tests-0123456789"; // at least 32 characters
 
 let teardown: () => void;
 let env: typeof import("../../../src/config/env.js").env;
@@ -205,5 +206,53 @@ describe("delivery service relay", () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
     const down = await request(app).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").set("Authorization", auth).send({});
     assert.equal(down.status, 503);
+  });
+});
+
+// From the security review of this branch: findings and their regression tests.
+describe("review: path safety and the delivery gate", () => {
+  it("refuses an id made of dots or path characters with 400 and never calls the marketplace", async () => {
+    // Sent raw over a socket: an HTTP client library would normalise "%2E%2E" away itself, an attacker's would not.
+    const server = app.listen(0, "127.0.0.1");
+    await new Promise((r) => server.once("listening", r));
+    const port = (server.address() as import("node:net").AddressInfo).port;
+    const raw = (method: string, path: string, headers: Record<string, string> = {}) =>
+      new Promise<number>((resolve, reject) => {
+        const req = http.request({ host: "127.0.0.1", port, method, path, headers: { "Content-Type": "application/json", ...headers } }, (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        });
+        req.on("error", reject);
+        req.end(method === "GET" ? undefined : JSON.stringify({ to: "published", address: null, title: "x" }));
+      });
+    const auth = { Authorization: `Bearer ${SECRET}` };
+    try {
+      const statuses = [
+        await raw("GET", "/api/marketplace/catalogue/%2E%2E"),
+        await raw("GET", "/api/marketplace/catalogue/%2e"),
+        await raw("PATCH", "/api/marketplace/publisher/listings/%2E%2E"),
+        await raw("POST", "/api/marketplace/publisher/listings/%2E/transitions"),
+        await raw("POST", "/api/marketplace/delivery/sources/%2E%2E/heartbeat", auth),
+        await raw("PUT", "/api/marketplace/delivery/sources/%2E%2E/address", auth),
+        await raw("GET", "/api/marketplace/catalogue/a%2Fb"),
+      ];
+      assert.deepEqual(statuses, [400, 400, 400, 400, 400, 400, 400]);
+      assert.equal(fetchMock.mock.calls.length, 0);
+    } finally {
+      server.close();
+    }
+  });
+
+  it("refuses every delivery call while the configured secret is shorter than 32 characters", async () => {
+    env.marketplaceDeliverySecret = "short-secret";
+    const response = await request(app).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").set("Authorization", "Bearer short-secret").send({});
+    assert.equal(response.status, 401);
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("never follows a redirect with the installation key", async () => {
+    fetchMock.mockResolvedValue(reply(200, []));
+    await request(app).get("/api/marketplace/publisher/listings");
+    assert.equal((fetchMock.mock.calls.at(-1)![1] as RequestInit).redirect, "error");
   });
 });

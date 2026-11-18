@@ -1,8 +1,9 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Request, type RequestParamHandler, type Response } from "express";
 import { env } from "../../config/env.js";
 import { badRequest, sendApiError, unauthorized } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { webhookRateLimiter } from "../auth/rate-limit.middleware.js";
 import {
   isDeliveryAuthorized,
   isMarketplaceConfigured,
@@ -20,6 +21,13 @@ export const marketplaceRouter = Router();
 export const marketplaceDeliveryRouter = Router();
 
 const id = (value: string) => encodeURIComponent(value);
+
+// Ids are checked before anything is forwarded. Encoding makes most characters harmless, but not a segment that
+// is only dots: fetch would collapse it, so "/sources/../delivery" could reach a path outside the allowlist.
+const validId: RequestParamHandler = (_req, res, next, value: string) =>
+  value.length > 0 && value.length <= 128 && !/^\.+$/.test(value) && !/[/\\]/.test(value) ? next() : badRequest(res, "Invalid id", { field: "id" });
+marketplaceRouter.param("id", validId);
+marketplaceDeliveryRouter.param("id", validId);
 
 /** Answers with the marketplace's result: 2xx and 4xx as given, unreachable or 5xx as a clean 503. */
 function relay(res: Response, result: MarketplaceResult) {
@@ -78,6 +86,8 @@ marketplaceRouter.get(
 );
 marketplaceRouter.get("/catalogue/:id", forward(sessionActor, "GET", (req) => `/api/catalogue/${id(req.params.id)}`));
 
+// Token-authenticated like the device webhooks, so rate-limited like them.
+marketplaceDeliveryRouter.use(webhookRateLimiter);
 marketplaceDeliveryRouter.use((req, res, next) => (isDeliveryAuthorized(req.headers.authorization) ? next() : unauthorized(res)));
 
 // Where buyers are sent is the owner's decision, so the address change is made as owner.

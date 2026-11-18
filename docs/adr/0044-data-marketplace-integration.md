@@ -27,6 +27,7 @@ Edge Studio has a single local role, `admin`.
 - **Fixed allowlist, not a proxy.** The backend exposes named routes for publisher sources/listings/earnings,
   listing create/edit/transition and the public catalogue. A transition forwards only `to`. Payout-wallet routes
   are not exposed: a wallet change needs the owner's separate authorisation on the marketplace website.
+- **Ids are checked before forwarding.** A path id that is only dots (or contains a slash) is refused with 400: `fetch` collapses dot segments, so `/sources/../delivery` would otherwise leave the allowlist. Requests never follow redirects, and the delivery routes are rate-limited and refuse a secret shorter than 32 characters.
 - **Error mapping.** A marketplace that cannot be reached, or answers 5xx, becomes a 503
   `marketplace_unavailable`; a 4xx passes through with `errorCode: marketplace_<error>`, which also keeps a
   marketplace 401 from being read as an expired Edge Studio session.

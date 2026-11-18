@@ -36,7 +36,7 @@ beforeEach(() => {
   rpc.runMinimaPathCommand.mockResolvedValue({ ok: true, status: 200, command: "maxima", body: { status: true, response: { publickey: NODE_KEY } } });
   env.marketplaceUrl = "https://market.example";
   env.marketplaceInstallationKey = KEY;
-  env.marketplaceDeliverySecret = "delivery-secret";
+  env.marketplaceDeliverySecret = "delivery-secret-at-least-32-characters";
 });
 
 afterEach(() => {
@@ -116,9 +116,9 @@ describe("marketplaceRequest", () => {
 
 describe("isDeliveryAuthorized", () => {
   it("accepts only the configured bearer secret", () => {
-    assert.equal(service.isDeliveryAuthorized("Bearer delivery-secret"), true);
+    assert.equal(service.isDeliveryAuthorized("Bearer delivery-secret-at-least-32-characters"), true);
     assert.equal(service.isDeliveryAuthorized("Bearer wrong"), false);
-    assert.equal(service.isDeliveryAuthorized("delivery-secret"), false);
+    assert.equal(service.isDeliveryAuthorized("delivery-secret-at-least-32-characters"), false);
     assert.equal(service.isDeliveryAuthorized(undefined), false);
   });
 
@@ -139,7 +139,8 @@ describe("sourcePushBody", () => {
       name: "Greenhouse",
       verified: true,
       attestations: 2,
-      proof: { nodePublicKey: NODE_KEY, reference: `integritas:uid:${latest.proof_uid}`, fingerprint: latest.hash, attestedAt: latest.created_at },
+      // The literal hash that was stamped for the newest read (review: not just copied from the same row).
+      proof: { nodePublicKey: NODE_KEY, reference: "integritas:uid:uid-new", fingerprint: "hash-uid-new", attestedAt: latest.created_at },
     });
   });
 
@@ -233,5 +234,43 @@ describe("source sync", () => {
     assert.equal(warn.mock.calls.length, 1);
     assert.equal(JSON.stringify(warn.mock.calls).includes(KEY), false);
     warn.mockRestore();
+  });
+});
+
+describe("review: sync ordering", () => {
+  it("a source deleted while its push waits for the node key is removed, not re-created", async () => {
+    env.marketplaceUrl = "https://market.example";
+    env.marketplaceInstallationKey = "esk_key";
+    fetchMock.mockResolvedValue(reply(200));
+    const source = sourceWithProofs("Short-lived", ["uid-1"]);
+    rpc.runMinimaPathCommand.mockImplementationOnce(async () => {
+      dataSources.deleteDataSource(source.id); // the admin deletes it while the node is being asked
+      return { ok: true, status: 200, command: "maxima", body: { status: true, response: { publickey: NODE_KEY } } };
+    });
+    service.queueMarketplaceSourceSync(source.id);
+    await service.flushMarketplaceSync();
+    assert.deepEqual(calls().map((c) => c.method), ["DELETE"]);
+  });
+
+  it("a flush that starts while another runs does not run at the same time; the queue is still pushed once", async () => {
+    env.marketplaceUrl = "https://market.example";
+    env.marketplaceInstallationKey = "esk_key";
+    fetchMock.mockResolvedValue(reply(200));
+    const source = sourceWithProofs("Busy", ["uid-1"]);
+    let release!: () => void;
+    const slowNode = new Promise<void>((r) => { release = r; });
+    rpc.runMinimaPathCommand.mockImplementationOnce(async () => {
+      await slowNode;
+      return { ok: true, status: 200, command: "maxima", body: { status: true, response: { publickey: NODE_KEY } } };
+    });
+    service.queueMarketplaceSourceSync(source.id);
+    const first = service.flushMarketplaceSync();
+    service.queueMarketplaceSourceSync(source.id); // a change arrives during the flush
+    await service.flushMarketplaceSync(); // returns at once: one flush at a time
+    assert.equal(calls().length, 0);
+    release();
+    await first;
+    await service.flushMarketplaceSync(); // the change that arrived meanwhile
+    assert.deepEqual(calls().map((c) => c.method), ["PUT", "PUT"]);
   });
 });

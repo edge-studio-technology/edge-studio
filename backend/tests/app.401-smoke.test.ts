@@ -133,12 +133,17 @@ describe("app 401 smoke test", () => {
 
     it("POST /api/marketplace/delivery/* is gated by the delivery secret, not a session", async () => {
       const { env } = await import("../src/config/env.js");
-      env.marketplaceDeliverySecret = "smoke-secret";
+      env.marketplaceDeliverySecret = "smoke-secret-at-least-32-characters-long";
+      const wrong = await request(app)
+        .post("/api/marketplace/delivery/sources/SRC-1/heartbeat")
+        .set("Authorization", "Bearer wrong")
+        .send({});
       const response = await request(app)
         .post("/api/marketplace/delivery/sources/SRC-1/heartbeat")
-        .set("Authorization", "Bearer smoke-secret")
+        .set("Authorization", "Bearer smoke-secret-at-least-32-characters-long")
         .send({});
       env.marketplaceDeliverySecret = "";
+      assert.equal(wrong.status, 401); // the real app wiring refuses a wrong secret
       // Past the secret check without a session cookie: the marketplace is simply not configured here.
       assert.equal(response.status, 503);
     });

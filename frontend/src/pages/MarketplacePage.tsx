@@ -34,7 +34,7 @@ export function MarketplacePage() {
       title="Marketplace"
       desc={
         status?.configured
-          ? `Marketplace configured: connected to ${status.url}.`
+          ? `Marketplace configured: ${status.url}.`
           : "Sell your verified device data on the Data Marketplace and browse other listings."
       }
     >
