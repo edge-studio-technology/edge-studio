@@ -4,6 +4,11 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- 2026-11-18 audit exception: implemented the explicitly approved advisory-specific development-only picomatch 4.0.7 acceptance with a 2026-12-02 00:00 UTC deadline. The gate traces derived advisory findings, checks lockfile nodes, separately audits production dependencies without exceptions, and rejects other moderate/high/critical findings, production reachability, changed versions, expiry, invalid reports and command failures. Documented the accepted build/test risk in SECURITY and ADR 0044, queued patch/removal review in TASKS and retired the implementation plan. No dependency, lockfile, Docker or app-version changes.
+- Verification: 51 focused audit/docs/policy tests, repository lint, Node syntax and whitespace checks passed. All three real full audits passed with the visible accepted advisory; all three production audits passed without exceptions. Runtime code was unchanged and app tests had passed in the original PR run before its audit failure; full Ubuntu PR CI is still the merge gate.
+
+- 2026-11-18 contributor prompt: simplified the opening to use the repository already open, replaced the abstract expected-behaviour placeholder with a plain-language sensor-use example, and added a route for users unsure what their device can do. Updated the AI guide's matching instructions; retained verification and authorized PR handoff. Documentation lint and whitespace checks passed; runtime tests were not rerun for this documentation-only change.
+
 - 2026-11-17 support catalog: added one public overview of four hardware/service capabilities, fourteen device/integration templates and fifteen workflow block types. Linked it from README, CONTRIBUTING and the docs index; contribution instructions require keeping it current. Used current code/UI names and linked the GPIO guide's documented prototype tests separately from generic protocol support and physical evidence not recorded here. No hardware test or runtime change was performed.
 - Verification: all fourteen template and fifteen block names match source inventory; catalog local file/section links resolve; documentation lint and whitespace checks passed. Runtime tests were not rerun for this documentation-only change.
 

@@ -42,20 +42,27 @@ Reviewers may request changes, ask for hardware evidence, defer or decline a cha
 
 ### Start with an AI assistant
 
-After cloning your fork, open it in your AI coding tool and copy the prompt below. Replace the bracketed values with your device details and desired behaviour. See the [AI contribution guide](docs/guides/contributor-ai.md) for loading the skill when your tool does not discover it automatically.
+After cloning your fork, open it in your AI coding tool and copy the prompt below. Replace the bracketed values with your device details and what you want to use it for. For example: “Read temperature and humidity and use those readings in workflows.” You do not need to know which drivers or code changes that requires. If you are unsure, write: “Help me understand what this device could do in Edge Studio before we implement support.” See the [AI contribution guide](docs/guides/contributor-ai.md) for loading the skill when your tool does not discover it automatically.
 
 ```text
-Use my Edge Studio checkout at [local checkout path]. Read AGENTS.md,
-CONTRIBUTING.md and .agents/skills/edge-studio-contributor/SKILL.md
-from this checkout before making changes.
+Work in the Edge Studio repository currently open.
 
-I want to add support for [exact device model], using [manufacturer
-documentation URL]. The expected behaviour is [what the user should
-be able to do].
+Before making changes, read:
+- AGENTS.md
+- CONTRIBUTING.md
+- .agents/skills/edge-studio-contributor/SKILL.md
+
+Help me add support for this device:
+[device name/model and manufacturer documentation link, if available]
+
+I want to use it to:
+[for example: read temperature and humidity and use those readings in workflows]
+
+If you need more information about the device, its connection or
+how I want to use it, ask me. Explain the choices in plain language.
 
 Check whether an existing protocol or integration can be reused. Identify
 a complete existing example and propose the smallest complete change.
-Ask about missing device details or unclear scope before implementing.
 
 Follow the contribution guides and relevant project rules. Work on a
 topic branch in my fork based on upstream dev. Implement the agreed

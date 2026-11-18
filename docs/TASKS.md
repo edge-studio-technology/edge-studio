@@ -24,6 +24,7 @@
 
 ### Follow-ups from finished work
 
+- [ ] By 2026-12-02 00:00 UTC, install a suitable picomatch patch and remove the approved development-only audit exception, or explicitly review its continued risk before expiry. Other advisories and production dependencies remain blocking — see [ADR 0044](./adr/0044-time-limit-the-development-picomatch-audit-exception.md).
 - [ ] Compare candidate Pi readiness/overview timings with the measured 2 s/4 s baseline once approved Docker diagnostic access is restored, and browser-check navigation, restart/resync/payment refresh, logout isolation and first-open settings/backups; wallet live-sync timing remains unmeasured.
 - [ ] Finish #861 Dashboard/status API disk warnings and generated proof-download cleanup; proof-linked camera protection is implemented and the user confirmed recommended Pi verification.
 - [ ] Retry local Docker image validation when the daemon is running; the user's successful Pi verification is recorded separately.
@@ -75,6 +76,10 @@
 - [ ] Sanity-check two catalog exclusions added beyond the Minima RPC console plan's named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material).
 
 ## Done
+
+- [x] Added the owner-approved GHSA-fc5q-39xc-vjpf exception for development-only picomatch 4.0.7, expiring 2026-12-02 00:00 UTC. Other advisories and production audits remain blocking. Verified 51 audit/docs/policy tests, lint, syntax/whitespace checks and all six real full/production app audits; normal PR CI remains required. Rationale is in ADR 0044; the completed implementation plan is retired.
+
+- [x] Simplified the AI contribution prompt and matching guide for users working in an open fork: concrete device-use example, optional documentation link and plain-language clarification when unsure. Documentation lint and whitespace checks passed; contributor/hardware trials remain open.
 
 - [x] Added a linked public hardware/device/workflow support catalog with prerequisites, setup links, current toolkit names, scoped verification evidence and contribution maintenance instructions. Source inventory, file/section links, documentation lint and whitespace checks passed. Physical compatibility and independent contributor trials remain separate.
 
