@@ -20,7 +20,7 @@ Shipped features with open QA, security, and test gaps. Only open items live her
 
 Browser checks for UI changes that only had build/typecheck or unit-test verification. Run once at desktop width and once below 1024 px, then delete the ticked lines.
 
-- [ ] **Shell** — Sidebar icons and the collapsed-sidebar expand button at both widths; "Start sidebar collapsed" honoured on refresh; onboarding wizard brand mark; `/marketplace` "Coming soon" and the Not found page on an unmatched path; `ErrorBoundary` fallback on a thrown error.
+- [ ] **Shell** — Sidebar icons and the collapsed-sidebar expand button at both widths; "Start sidebar collapsed" honoured on refresh; onboarding wizard brand mark; the Not found page on an unmatched path; `ErrorBoundary` fallback on a thrown error.
 - [ ] **Shared states** — `EmptyContentState`, `LoadingState`, `ErrorContentState`, and `SpinnerAlt` against Figma on Devices, wallet history, address book, and all Diagnostics tabs. `ListFilterBar`: search/filter stay enabled when a search matches nothing, disabled only for a genuinely empty list; numbered pagination greys out when disabled.
 - [ ] **Modals** — Footer button order and `form=` submit (Enter and click) on delete confirm, send feedback, send payment, address book add/edit, edit device, and the Minima backup modals; unboxed bodies on progress, edit contact, send payment, and whitelist confirm; no flicker on confirm → progress swaps; outside-click-to-close (press-to-close, no close from an inside-to-outside text selection, setting persists across reload).
 - [ ] **Devices** — `New device` opens the add flow; All/Input/Output/Capture filter and search; empty state actions; pagination total follows the filter.
@@ -30,6 +30,7 @@ Browser checks for UI changes that only had build/typecheck or unit-test verific
 - [ ] **Settings** — Disclosures start collapsed; "Integritas settings" pill shows "Checking…" first; Minima Backups/Peers tables scroll cap, row actions, empty states, and "Delete backup" flow; no auto-restart toggle; RPC console whitelist modal checkbox styling and collapsible Read/Write sections.
 - [ ] **Feedback** — Bug/feature/other form states and validation; "Integritas account ID" row ("Not connected" when unlinked); disabled submit without an API key, consent block, and hosted success/failure status.
 - [ ] **Updates** — Update page "Update now"/"Check again"; `update-agent` progress page gradient background, logo size and position, and Back buttons; sidebar "Update available" badge clears after a real update cycle.
+- [ ] **Marketplace** — Not-configured line; My listings empty state → wizard, Dataset/File ↔ Live Stream switch, draft save, Publish/Pause/Unpublish; Catalogue search/filters, Details live line, Buy opens the marketplace listing in a new tab; "Marketplace service unavailable"/"Marketplace unavailable" + Retry with the marketplace stopped; sidebar item keyboard focus ring. Then end to end against a real marketplace: start-up source push, new ready proof push, device delete, and delivery-service heartbeat/address relay (all verified only with mocks so far).
 - [ ] **Copy** — Tightened page and section descriptions fit at real widths (Dashboard, Minima, Integritas, Devices, Settings, onboarding welcome, Marketplace).
 
 ---

@@ -206,6 +206,21 @@ describe("applyPollResultToRecord", () => {
     const updated = service.applyPollResultToRecord(record.id, "  Uid-Mixed  ", result);
     assert.equal(updated.proof_status, "ready");
   });
+
+  it("queues a marketplace push for the stamped data source once its proof is ready", async () => {
+    const marketplace = await import("../../../src/features/marketplace/marketplace.service.js");
+    const queue = vi.spyOn(marketplace, "queueMarketplaceSourceSync");
+    const source = dataSourcesRepo.createDataSource({ name: "Stamped", type: "json-api", config: { url: "https://api.example/s" } });
+    const read = dataReadsRepo.createDataSourceRead({ dataSourceId: source.id, sourceName: "Stamped", sourceUrl: "https://api.example/s", triggerType: "manual", status: "success", hash: "h6" });
+    const record = integritasRepo.createProofRecord({ hash: "h6", proofUid: "uid-market", proofStatus: "pending" });
+    dataReadsRepo.linkDataSourceReadProof(read.id, record.id);
+    const payload = [{ address: "a", data: "d", proof: "p", root: "r" }];
+
+    service.applyPollResultToRecord(record.id, "uid-market", { ok: true, items: [{ uid: "uid-market", onchain: true }], proofPayloads: [{ uid: "uid-market", proofPayload: payload }] });
+
+    assert.deepEqual(queue.mock.calls, [[source.id]]);
+    queue.mockRestore();
+  });
 });
 
 const fetchMock = vi.fn();

@@ -23,12 +23,13 @@ Feature folders:
 - Minima: `backend/src/features/minima/`
 - Status/Docker overview: `backend/src/features/status/`
 - Settings/secrets: `backend/src/features/settings/`
+- Data Marketplace client, source push and delivery relay: `backend/src/features/marketplace/`
 
 Backend rules:
 
 - Add routes through feature routers and register them in `backend/src/app.ts`.
 - Add schema changes in `backend/src/db/database.ts`.
-- Keep Integritas API keys backend-only.
+- Keep Integritas API keys and the marketplace installation key backend-only.
 - When storing secrets, use existing settings/secrets services.
 - When adding a scheduler, start it from `backend/src/index.ts` after migrations.
 - Return useful error details from backend services, but never leak secrets.
@@ -46,7 +47,7 @@ Error handling rules:
 
 Auth rules:
 
-- Public routes: `GET /api/health`, `GET /api/setup/status`, `POST /api/setup/*`, `POST /api/auth/login`.
+- Public routes: `GET /api/health`, `GET /api/setup/status`, `POST /api/setup/*`, `POST /api/auth/login`. Token/secret-authenticated routes sit before `requireAuth` too: `/api/data-source-webhooks/:token` and `/api/marketplace/delivery/*` (`MARKETPLACE_DELIVERY_SECRET`, ADR 0044).
 - All other `/api/*` routes require `requireAuth` in `backend/src/app.ts`.
 - High-risk mutations also use `requireRole('admin')` (Integritas API key, files, automation/data-source mutations).
 - Gate routes by what the handler does, not by which router it lives in. `POST /api/minima/config` and `/megammrsync/resync` match the other Minima mutations; Integritas stamp-file/history-delete/verify are admin, history reads and export are not. `backend/tests/app.401-smoke.test.ts` pins the whole matrix — add new admin routes there.

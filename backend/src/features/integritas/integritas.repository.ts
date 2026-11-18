@@ -110,3 +110,12 @@ export function deleteProofRecords(ids: string[]) {
   const tx = db.transaction((recordIds: string[]) => recordIds.forEach((id) => stmt.run(id)));
   tx(ids);
 }
+
+/** Ready proofs stamped from one data source's reads: how many, and the newest. */
+export function getReadyProofsForDataSource(dataSourceId: string) {
+  const from = `FROM integritas_proofs p JOIN data_source_reads r ON r.integritas_proof_id = p.id
+    WHERE r.data_source_id = ? AND p.proof_status = 'ready'`;
+  const { count } = db.prepare(`SELECT COUNT(DISTINCT p.id) AS count ${from}`).get(dataSourceId) as { count: number };
+  const latest = db.prepare(`SELECT p.* ${from} ORDER BY p.created_at DESC LIMIT 1`).get(dataSourceId) as IntegritasProofRecord | undefined;
+  return { count, latest: latest ?? null };
+}

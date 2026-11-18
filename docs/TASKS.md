@@ -24,6 +24,7 @@
 
 ### Follow-ups from finished work
 
+- [ ] Verify the Data Marketplace module end to end against a real marketplace and delivery service, and confirm the Maxima public key as `nodePublicKey` with the marketplace team (ADR 0044; `docs/qa/gaps.md` → Marketplace). Edge Studio has only `admin`, so marketplace `viewer`/`publisher` roles stay unreachable until a second local role exists.
 - [ ] Compare candidate Pi readiness/overview timings with the measured 2 s/4 s baseline once approved Docker diagnostic access is restored, and browser-check navigation, restart/resync/payment refresh, logout isolation and first-open settings/backups; wallet live-sync timing remains unmeasured.
 - [ ] Finish #861 Dashboard/status API disk warnings and generated proof-download cleanup; proof-linked camera protection is implemented and the user confirmed recommended Pi verification.
 - [ ] Retry local Docker image validation when the daemon is running; the user's successful Pi verification is recorded separately.

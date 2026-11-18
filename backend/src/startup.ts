@@ -36,6 +36,10 @@ import {
   stopRetentionScheduler,
 } from "./features/retention/retention.service.js";
 import { ensureDeviceId } from "./features/status/device.service.js";
+import {
+  startMarketplaceSourceSync,
+  stopMarketplaceSourceSync,
+} from "./features/marketplace/marketplace.service.js";
 
 runMigrations();
 await ensureDeviceId();
@@ -48,6 +52,7 @@ startMqttIngestion();
 startGpioIngestion();
 startSessionCleanupScheduler();
 startRetentionScheduler();
+startMarketplaceSourceSync();
 
 const app = createApp();
 
@@ -71,6 +76,7 @@ function shutdown() {
   stopGpioOutputHolders();
   stopSessionCleanupScheduler();
   stopRetentionScheduler();
+  stopMarketplaceSourceSync();
   db.close();
   process.exit(0);
 }

@@ -187,7 +187,7 @@ export function AppShellSidebar({
                     to={`/${id}`}
                     title={collapsed ? label : undefined}
                     className={cx(
-                      "rounded-loose px-detail-close flex h-[44px] w-full shrink-0 items-center overflow-hidden border transition-[colors,border-color,gap] duration-200",
+                      "rounded-loose px-detail-close focus-visible:ring-stroke-active flex h-[44px] w-full shrink-0 items-center overflow-hidden border transition-[colors,border-color,gap] duration-200 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
                       collapsed ? "gap-0" : "gap-detail-next",
                       isActive
                         ? "bg-surface-accent text-text-inverse border-transparent"
