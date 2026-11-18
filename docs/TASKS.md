@@ -76,6 +76,8 @@
 
 ## Done
 
+- [x] Simplified the AI contribution prompt and matching guide for users working in an open fork: concrete device-use example, optional documentation link and plain-language clarification when unsure. Documentation lint and whitespace checks passed; contributor/hardware trials remain open.
+
 - [x] Added a linked public hardware/device/workflow support catalog with prerequisites, setup links, current toolkit names, scoped verification evidence and contribution maintenance instructions. Source inventory, file/section links, documentation lint and whitespace checks passed. Physical compatibility and independent contributor trials remain separate.
 
 - [x] Added a copyable AI device-contribution prompt to CONTRIBUTING and linked it from the AI guide, including repository instructions, integration scope, evidence and fork-to-PR handoff. Independent contributor and physical-hardware trials remain open.
