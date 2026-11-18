@@ -19,6 +19,6 @@ export const nav: NavItem[] = [
   { id: "data", label: "Devices", icon: Cable },
   { id: "workflows", label: "Workflows", icon: Workflow },
   { id: "diagnostics", label: "Diagnostics", icon: Activity },
-  { id: "marketplace", label: "Marketplace", icon: ShoppingCart, badge: "Coming soon" },
+  { id: "marketplace", label: "Marketplace", icon: ShoppingCart },
   { id: "settings", label: "Settings", icon: Settings },
 ];

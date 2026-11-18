@@ -33,6 +33,24 @@ describe("AppShellSidebar", () => {
     expect(screen.getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");
   });
 
+  it("has a keyboard-reachable Marketplace item with an accessible name and a visible focus ring", async () => {
+    renderSidebar();
+    const marketplace = screen.getByRole("link", { name: "Marketplace" });
+    expect(marketplace).toHaveAttribute("href", "/marketplace");
+    expect(marketplace.className).toMatch(/focus-visible:ring-2/);
+    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    for (let step = 0; step < 20 && document.activeElement !== marketplace; step += 1) await user.tab();
+    expect(marketplace).toHaveFocus();
+  });
+
+  it("keeps the Marketplace name when the sidebar is collapsed", async () => {
+    renderSidebar();
+    await userEvent.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+    expect(screen.getByRole("link", { name: "Marketplace" })).toBeInTheDocument();
+  });
+
   it("shows the version string", () => {
     renderSidebar({ version: "1.2.3" });
     expect(screen.getByText("1.2.3")).toBeInTheDocument();

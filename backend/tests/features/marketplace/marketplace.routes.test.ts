@@ -50,11 +50,12 @@ function lastCall() {
 describe("status", () => {
   it("says whether the marketplace is configured and the mapped role, never the key or secret", async () => {
     const response = await request(app).get("/api/marketplace/status");
-    assert.deepEqual(response.body, { configured: true, role: "owner" });
+    assert.deepEqual(response.body, { configured: true, url: "https://market.example", role: "owner" });
     assert.equal(JSON.stringify(response.body).includes(KEY), false);
+    assert.equal(JSON.stringify(response.body).includes(SECRET), false);
 
     env.marketplaceInstallationKey = "";
-    assert.equal((await request(app).get("/api/marketplace/status")).body.configured, false);
+    assert.deepEqual((await request(app).get("/api/marketplace/status")).body, { configured: false, url: null, role: "owner" });
   });
 });
 

@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { env } from "../../config/env.js";
 import { badRequest, sendApiError, unauthorized } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
@@ -47,8 +48,10 @@ function forward(actor: (req: Request) => MarketplaceActor, method: string, path
 
 const sessionActor = (req: Request): MarketplaceActor => ({ userId: req.user!.id, role: marketplaceRoleFor(req.user!.role) });
 
+// The URL is public (Buy opens the marketplace website); the key and delivery secret never leave the backend.
 marketplaceRouter.get("/status", (req, res) => {
-  res.json({ configured: isMarketplaceConfigured(), role: marketplaceRoleFor(req.user!.role) });
+  const configured = isMarketplaceConfigured();
+  res.json({ configured, url: configured ? env.marketplaceUrl.replace(/\/+$/, "") : null, role: marketplaceRoleFor(req.user!.role) });
 });
 
 marketplaceRouter.get("/publisher/sources", forward(sessionActor, "GET", () => "/api/publisher/sources"));

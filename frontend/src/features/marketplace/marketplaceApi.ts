@@ -1,0 +1,107 @@
+import { getJson, postJson } from "../../lib/api";
+
+// The browser only talks to Edge Studio's backend; the backend holds the marketplace installation key.
+
+export type MarketplaceRole = "owner" | "publisher" | "viewer";
+export type MarketplaceStatus = { configured: boolean; url: string | null; role: MarketplaceRole };
+export type PublisherSource = { id: string; name: string; attestations: number; selectable: boolean; reason?: string };
+export type ListingType = "file" | "stream";
+export type ListingState = "draft" | "published" | "paused" | "unpublished" | "suspended";
+export type Listing = {
+  id: string;
+  type: ListingType;
+  state: ListingState;
+  title: string | null;
+  category: string | null;
+  price: { cents: number; currency: string } | null;
+  verified: boolean;
+};
+export type CatalogueListing = Listing & {
+  description: string | null;
+  format: string | null;
+  licence: string | null;
+  availability: string | null;
+  deliveryMethod: string | null;
+};
+export type LiveState = { delivery: "online" | "offline"; lastContactAt: string | null; data: "fresh" | "stale" | null; lastDataAt: string | null };
+
+/** The only two product types (TC-FR03-06): no usage-based, pooled or auction types. */
+export const PRODUCT_TYPES: { value: ListingType; label: string }[] = [
+  { value: "file", label: "Dataset/File" },
+  { value: "stream", label: "Live Stream" },
+];
+export const CATEGORIES = [
+  "Environment and weather",
+  "Energy consumption",
+  "Equipment and machine telemetry",
+  "Agriculture and growing conditions",
+  "Other approved data streams (e.g. video)",
+];
+export const FORMATS = ["CSV", "JSON", "NDJSON", "Parquet"];
+
+/** Billing and delivery follow the type, so switching type can never leave a stale value (TC-FR03-03). */
+const TYPE_FIELDS = {
+  file: { billing: "one_off", deliveryMethod: "Seller-hosted download" },
+  stream: { billing: "monthly", deliveryMethod: "Seller-hosted stream" },
+} as const;
+
+export type ListingDraft = {
+  sourceId: string;
+  type: ListingType;
+  title: string;
+  category: string;
+  description: string;
+  format: string;
+  licence: string;
+  price: string;
+  availability: string;
+};
+
+export function listingPayload(draft: ListingDraft) {
+  return {
+    sourceId: draft.sourceId,
+    type: draft.type,
+    ...TYPE_FIELDS[draft.type],
+    title: draft.title.trim(),
+    category: draft.category,
+    description: draft.description,
+    format: draft.format,
+    licence: draft.licence.trim(),
+    price: { amount: draft.price.trim(), currency: "USD" },
+    availability: draft.availability.trim(),
+  };
+}
+
+/** Owners and publishers may publish; viewers only read (TC-FR01-04). Edge Studio's admin is the owner. */
+export function canPublish(role: MarketplaceRole) {
+  return role === "owner" || role === "publisher";
+}
+
+/** What a seller can do next with a listing; mirrors the marketplace's seller lifecycle. */
+export function nextTransitions(state: ListingState): ("published" | "paused" | "unpublished")[] {
+  if (state === "draft") return ["published"];
+  if (state === "published") return ["paused", "unpublished"];
+  if (state === "paused") return ["published", "unpublished"];
+  return [];
+}
+
+export function priceText(listing: Pick<Listing, "price" | "type">) {
+  if (!listing.price) return "No price";
+  if (listing.price.cents === 0) return "Free";
+  const amount = `$${(listing.price.cents / 100).toFixed(2)}`;
+  return listing.type === "stream" ? `${amount} per month` : amount;
+}
+
+export const getMarketplaceStatus = () => getJson<MarketplaceStatus>("/api/marketplace/status");
+export const getPublisherSources = () => getJson<PublisherSource[]>("/api/marketplace/publisher/sources");
+export const getPublisherListings = () => getJson<Listing[]>("/api/marketplace/publisher/listings");
+export const createListing = (draft: ListingDraft) => postJson<Listing>("/api/marketplace/publisher/listings", listingPayload(draft));
+export const transitionListing = (id: string, to: "published" | "paused" | "unpublished") =>
+  postJson<Listing>(`/api/marketplace/publisher/listings/${encodeURIComponent(id)}/transitions`, { to });
+
+export function searchCatalogue(filter: { q: string; category: string; type: string }) {
+  const query = new URLSearchParams(Object.entries(filter).filter(([, value]) => value)).toString();
+  return getJson<CatalogueListing[]>(`/api/marketplace/catalogue${query ? `?${query}` : ""}`);
+}
+export const getCatalogueListing = (id: string) =>
+  getJson<CatalogueListing & { live: LiveState }>(`/api/marketplace/catalogue/${encodeURIComponent(id)}`);
