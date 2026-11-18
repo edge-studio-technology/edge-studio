@@ -52,6 +52,7 @@ const protectedPrefixes = [
   "/api/wallet",
   "/api/wallet/address-book",
   "/api/preferences",
+  "/api/marketplace",
 ];
 
 // The admin-gate matrix. `UserRole` has one member today, so this cannot be driven through a
@@ -60,6 +61,9 @@ const protectedPrefixes = [
 // asymmetric on the same primitives (health vs. read, resync/config vs. peers/add), and the
 // failure mode is a new route quietly shipping ungated.
 const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
+  ["post", "/api/marketplace/publisher/listings"],
+  ["patch", "/api/marketplace/publisher/listings/L-1"],
+  ["post", "/api/marketplace/publisher/listings/L-1/transitions"],
     ["get", "/api/auth/settings/session"],
     ["post", "/api/auth/settings/session"],
     ["get", "/api/retention/camera"],
@@ -125,6 +129,18 @@ describe("app 401 smoke test", () => {
       const response = await request(app).post("/api/auth/login").send({});
       assert.equal(response.status, 401);
       assert.equal(response.body.error, "Invalid credentials");
+    });
+
+    it("POST /api/marketplace/delivery/* is gated by the delivery secret, not a session", async () => {
+      const { env } = await import("../src/config/env.js");
+      env.marketplaceDeliverySecret = "smoke-secret";
+      const response = await request(app)
+        .post("/api/marketplace/delivery/sources/SRC-1/heartbeat")
+        .set("Authorization", "Bearer smoke-secret")
+        .send({});
+      env.marketplaceDeliverySecret = "";
+      // Past the secret check without a session cookie: the marketplace is simply not configured here.
+      assert.equal(response.status, 503);
     });
 
     it("POST /api/data-source-webhooks/:token does not require auth", async () => {

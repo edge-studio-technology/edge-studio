@@ -6,6 +6,7 @@ import { setupRouter } from "./features/auth/setup.routes.js";
 import { automationRouter } from "./features/automation/automation.routes.js";
 import { dataReadsRouter } from "./features/data-reads/dataReads.routes.js";
 import { feedbackRouter } from "./features/feedback/feedback.routes.js";
+import { marketplaceDeliveryRouter, marketplaceRouter } from "./features/marketplace/marketplace.routes.js";
 import {
   dataSourcesRouter,
   dataSourcesWebhookRouter,
@@ -39,6 +40,7 @@ export function createApp() {
   app.use("/api/setup", setupRouter);
   app.use("/api/auth", authPublicRouter);
   app.use("/api/data-source-webhooks", dataSourcesWebhookRouter);
+  app.use("/api/marketplace/delivery", marketplaceDeliveryRouter);
 
   app.use(requireAuth);
 
@@ -58,6 +60,7 @@ export function createApp() {
   app.use("/api/wallet", walletRouter);
   app.use("/api/wallet/address-book", addressBookRouter);
   app.use("/api/preferences", preferencesRouter);
+  app.use("/api/marketplace", marketplaceRouter);
 
   app.use(uploadErrorHandler);
 
