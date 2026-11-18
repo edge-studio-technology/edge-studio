@@ -376,6 +376,8 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 ## Local Development
 
+`npm run audit:moderate` checks development and production dependencies in backend, frontend and update-agent. A narrowly scoped picomatch development advisory exception expires on 2026-12-02; see [the accepted risk and audit boundaries](docs/adr/0044-time-limit-the-development-picomatch-audit-exception.md). Other moderate or higher findings remain blocking.
+
 Copy the example environment file:
 
 ```bash
