@@ -20,6 +20,7 @@ Page and feature folders:
 - Automation UI/API/types: `frontend/src/features/automation/`
 - Auth UI/API: `frontend/src/features/auth/`
 - First-run setup wizard: `frontend/src/features/setup/`
+- Data Marketplace listings/catalogue UI/API: `frontend/src/features/marketplace/`
 
 Frontend rules:
 
