@@ -77,6 +77,8 @@
 
 ## Done
 
+- [x] Clarified AI-assisted PR handoff: contributors confirm their own MIT submission rights, relevant evidence belongs on the PR, and missing required items stay visible as draft follow-up. Updated contributor/review docs and mirrored skills; see SESSION for verification.
+
 - [x] Fixed piped uninstall confirmation by opening terminal input/output separately; real Linux pseudo-terminal reproduction, all 16 Linux uninstall regressions, Windows scripts wrapper, shell syntax and lint/docs checks passed. Typed deletion confirmation and missing-terminal refusal remain enforced; physical disposable-Pi uninstall validation remains open.
 - [x] Clarified the fork-to-Pi installation/update handoff in the quickstart, public entry points and mirrored contributor skill: expected pushed commit, matching fork/branch commands, installed commit/container/behaviour verification and subsequent revision installs. Three source-build regressions, docs/whitespace checks and three skill validations passed; no physical Pi trial was performed.
 

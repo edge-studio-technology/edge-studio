@@ -17,6 +17,10 @@ Use the [copyable starting prompt in CONTRIBUTING.md](../../CONTRIBUTING.md#star
 
 The skill routes to human guides instead of maintaining another set of architecture rules. It asks for real test results and clear physical-test limitations. Inspect the diff, understand dependencies and error cases, and review generated code before submitting it. A tool saying “safe” or “all tests passed” is not evidence unless the relevant commands actually ran and produced that result.
 
+## Finish the PR handoff
+
+Before calling a PR ready, walk through any unfinished items in its template with the contributor. Ask them to confirm that they have the right to submit the work under the project's MIT terms; only the contributor can make that confirmation, and the assistant must not check the box on their behalf. Help put relevant test results and available screenshots on the PR itself after checking for private information. Do not refer reviewers to evidence that exists only in a private chat. If a required confirmation or evidence is missing, state exactly what remains and leave the PR as a draft. Never invent evidence or claim a physical test that was not performed.
+
 ## Skill verification and feedback
 
 When preparing a Pi test, follow the [fork installation steps and handoff checklist](./contributor-quickstart.md#fork-source-build-on-a-disposable-pi). The assistant should provide the actual fork/branch and expected pushed commit, label which commands run on each computer, include installed-commit and container checks, and explain how to install the next revision. If publishing or Pi access is not authorized or available, provide the instructions and state what remains unperformed.

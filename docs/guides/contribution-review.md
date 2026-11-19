@@ -28,10 +28,10 @@ Move security concerns to the [private reporting route](../../SECURITY.md#report
 
 ## Pull-request checklist
 
-- Confirm the contributor has the right to submit the change under the project's [MIT contribution terms](../../CONTRIBUTING.md#before-contributing-code). Preserve applicable third-party licenses and notices; check compatibility when adding dependencies or copied material.
+- Confirm the contributor has the right to submit the change under the project's [MIT contribution terms](../../CONTRIBUTING.md#before-contributing-code). The contributor must personally confirm this in the PR template; an AI assistant or reviewer must not attest on their behalf. Preserve applicable third-party licenses and notices; check compatibility when adding dependencies or copied material.
 - Confirm the feature PR targets upstream `dev`, solves a stated problem and has a Conventional title describing its result. Squash-merge features with that title; follow the [release guide](./releases.md) for merge promotions, release approval and main-to-dev synchronization.
 - Check the affected backend, UI, helper, installer, workflow and saved-data paths using the relevant recipe. Evaluate tests and operator docs together.
-- Require actual commands/results, including limitations. Request physical model/OS verification when accepting hardware claims. A mock, screenshot, AI explanation or passing linter is not a hardware result.
+- Require actual commands/results, including limitations, in the PR. Relevant screenshots and other review evidence should be attached to the PR, checked for private information, and accessible to reviewers without relying on a private conversation. Request physical model/OS verification when accepting hardware claims. A mock, screenshot, AI explanation or passing linter is not by itself a physical hardware result.
 - Examine configuration migration, repeat installs, disable/re-enable, error/cancellation handling and shared dependencies where affected.
 - Verify appropriate CI and human review. Do not supply secrets, production data or host privileges to run untrusted fork code. Build/test workflows use `pull_request` and read-only repository contents. The separate metadata checks use read-only `pull_request_target` with trusted base-SHA policy code only; never run contributor code in those jobs.
 - Review generated/AI-assisted work to the same standard as manually authored code. The submitter remains responsible for understanding and verifying the change.
