@@ -31,6 +31,8 @@ Edge Studio code and documentation are available under the [MIT License](LICENSE
 
 ## Installation On Raspberry Pi
 
+Testing changes from your own fork? Follow [the fork-to-Pi installation checklist](docs/guides/contributor-quickstart.md#fork-source-build-on-a-disposable-pi), which builds your branch with `DEV_MODE=true` and verifies the expected commit. The normal command below installs the official release.
+
 Run:
 
 ```bash
