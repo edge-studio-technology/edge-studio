@@ -8,13 +8,14 @@ import { ErrorContentState } from "../components/patterns/ErrorContentState";
 import { LoadingState } from "../components/patterns/LoadingState";
 import { describeLoadFailure } from "../lib/errors";
 import { MarketplaceCatalogue } from "../features/marketplace/MarketplaceCatalogue";
+import { PublisherEarnings } from "../features/marketplace/PublisherEarnings";
 import { PublisherListings } from "../features/marketplace/PublisherListings";
 import { getMarketplaceStatus, type MarketplaceStatus } from "../features/marketplace/marketplaceApi";
 
 export function MarketplacePage() {
   const [status, setStatus] = useState<MarketplaceStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"listings" | "catalogue">("listings");
+  const [tab, setTab] = useState<"listings" | "earnings" | "catalogue">("listings");
 
   const load = useCallback(async () => {
     setError(null);
@@ -55,11 +56,18 @@ export function MarketplacePage() {
             value={tab}
             options={[
               { value: "listings", label: "My listings" },
+              { value: "earnings", label: "Earnings" }, // TC-FR12-19: the seller's sales and earnings
               { value: "catalogue", label: "Catalogue" },
             ]}
             onChange={setTab}
           />
-          {tab === "listings" ? <PublisherListings role={status.role} /> : <MarketplaceCatalogue marketplaceUrl={status.url} />}
+          {tab === "listings" ? (
+            <PublisherListings role={status.role} />
+          ) : tab === "earnings" ? (
+            <PublisherEarnings />
+          ) : (
+            <MarketplaceCatalogue marketplaceUrl={status.url} />
+          )}
         </Card>
       )}
     </Page>

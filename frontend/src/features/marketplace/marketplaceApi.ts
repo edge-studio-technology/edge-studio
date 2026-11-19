@@ -120,3 +120,40 @@ export function searchCatalogue(filter: { q: string; category: string; type: str
 }
 export const getCatalogueListing = (id: string) =>
   getJson<CatalogueListing & { live: LiveState }>(`/api/marketplace/catalogue/${encodeURIComponent(id)}`);
+
+/** The seller's sales and earnings (TC-FR12-19): one entry per ledger row, in USD cents (refunds are negative). */
+type EarningsEntry = {
+  kind: "sale" | "renewal" | "refund";
+  entitlementId: string;
+  listingId: string;
+  listingTitle: string | null;
+  at: string;
+  grossCents: number;
+  commissionCents: number;
+  netCents: number;
+  rateBps: number;
+  payoutState: string | null;
+  payoutTxpowid: string | null;
+};
+export type Earnings = {
+  transactions: EarningsEntry[];
+  totals: { grossCents: number; refundedCents: number; commissionCents: number; netCents: number };
+  payoutCredit: string;
+};
+export const getEarnings = () => getJson<Earnings>("/api/marketplace/publisher/earnings");
+
+/** USD cents as text, with the sign in front: -2125 is "-$21.25". */
+export const centsText = (cents: number) => `${cents < 0 ? "-" : ""}$${(Math.abs(cents) / 100).toFixed(2)}`;
+
+/** The marketplace's payout states in words (its settlement and payout states, rules §5). */
+export function payoutStateText(state: string | null) {
+  switch (state) {
+    case "earned": return "Earned, waiting for payout";
+    case "paused": return "Payout on hold";
+    case "sending": return "Payout being sent";
+    case "submitted": return "Payout sent, waiting for confirmations";
+    case "confirmed": return "Paid (confirmed)";
+    case "refunded": return "Refunded";
+    default: return "Not yet earned"; // captured, or no settlement yet
+  }
+}

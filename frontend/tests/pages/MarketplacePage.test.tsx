@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   getPublisherListings: vi.fn(),
   getPublisherSources: vi.fn(),
   searchCatalogue: vi.fn(),
+  getEarnings: vi.fn(),
 }));
 vi.mock("../../src/features/marketplace/marketplaceApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/features/marketplace/marketplaceApi")>()),
@@ -63,6 +64,15 @@ describe("MarketplacePage", () => {
     renderPage();
     await userEvent.click(await screen.findByRole("tab", { name: "Catalogue" }));
     expect(await screen.findByText("No listings found")).toBeInTheDocument();
+  });
+
+  it("TC-FR12-19 the publisher opens their earnings from the Marketplace page", async () => {
+    api.getMarketplaceStatus.mockResolvedValue({ configured: true, url: "https://market.example", role: "owner" });
+    api.getPublisherListings.mockResolvedValue([]);
+    api.getEarnings.mockResolvedValue({ transactions: [], totals: { grossCents: 0, refundedCents: 0, commissionCents: 0, netCents: 0 }, payoutCredit: "0" });
+    renderPage();
+    await userEvent.click(await screen.findByRole("tab", { name: "Earnings" }));
+    expect(await screen.findByText("No sales yet")).toBeInTheDocument();
   });
 
   it("offers a retry when the status itself cannot be loaded", async () => {
