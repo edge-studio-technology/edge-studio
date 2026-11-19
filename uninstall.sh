@@ -190,8 +190,9 @@ def show_plan(app, services, containers, paths, removal, delete_data, rules):
 
 
 def confirm(terminal, prompt):
-    terminal.write(prompt)
-    terminal.flush()
+    with open("/dev/tty", "w") as output:
+        output.write(prompt)
+        output.flush()
     answer = terminal.readline()
     if not answer:
         raise RuntimeError("Terminal input ended; uninstall cancelled.")
@@ -279,7 +280,7 @@ def main():
     try:
         if not args.dry_run:
             try:
-                terminal = open("/dev/tty", "r+")
+                terminal = open("/dev/tty", "r")
             except OSError:
                 raise RuntimeError("An interactive terminal is required for uninstall confirmation. Use --dry-run to preview.")
             if not args.delete_data:

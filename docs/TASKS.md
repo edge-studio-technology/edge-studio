@@ -77,6 +77,7 @@
 
 ## Done
 
+- [x] Fixed piped uninstall confirmation by opening terminal input/output separately; real Linux pseudo-terminal reproduction, all 16 Linux uninstall regressions, Windows scripts wrapper, shell syntax and lint/docs checks passed. Typed deletion confirmation and missing-terminal refusal remain enforced; physical disposable-Pi uninstall validation remains open.
 - [x] Clarified the fork-to-Pi installation/update handoff in the quickstart, public entry points and mirrored contributor skill: expected pushed commit, matching fork/branch commands, installed commit/container/behaviour verification and subsequent revision installs. Three source-build regressions, docs/whitespace checks and three skill validations passed; no physical Pi trial was performed.
 
 - [x] Added the owner-approved GHSA-fc5q-39xc-vjpf exception for development-only picomatch 4.0.7, expiring 2026-12-02 00:00 UTC. Other advisories and production audits remain blocking. Verified 51 audit/docs/policy tests, lint, syntax/whitespace checks and all six real full/production app audits; normal PR CI remains required. Rationale is in ADR 0044; the completed implementation plan is retired.
