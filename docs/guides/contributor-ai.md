@@ -19,4 +19,6 @@ The skill routes to human guides instead of maintaining another set of architect
 
 ## Skill verification and feedback
 
+When preparing a Pi test, follow the [fork installation steps and handoff checklist](./contributor-quickstart.md#fork-source-build-on-a-disposable-pi). The assistant should provide the actual fork/branch and expected pushed commit, label which commands run on each computer, include installed-commit and container checks, and explain how to install the next revision. If publishing or Pi access is not authorized or available, provide the instructions and state what remains unperformed.
+
 When trying the skill in a clean harness, record the skill/app commit, request, files consulted/changed, commands/results and assistance required. Check that it locates the correct repository, reuses an existing integration, considers all affected surfaces, preserves the private-feedback/current host boundaries and prepares a focused PR description. Record any loading or routing failure and improve the guide/skill from that evidence. A syntax validator proves file shape, not successful harness usage or an independent hardware contribution.
