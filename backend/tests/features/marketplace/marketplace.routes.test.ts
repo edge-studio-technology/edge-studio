@@ -13,6 +13,7 @@ const SECRET = "delivery-secret-for-route-tests-0123456789"; // at least 32 char
 let teardown: () => void;
 let env: typeof import("../../../src/config/env.js").env;
 let app: express.Express;
+let server: http.Server;
 const fetchMock = vi.fn();
 
 beforeAll(async () => {
@@ -30,9 +31,17 @@ beforeAll(async () => {
     next();
   });
   app.use("/api/marketplace", marketplaceRouter);
+  // One server bound to 127.0.0.1 for the whole file. supertest's own throwaway server listens on every interface
+  // while its requests go to 127.0.0.1, so a local process holding the same port number on 127.0.0.1 alone could
+  // answer instead (rare 401/404 with an empty body, seen 2026-11-19).
+  server = app.listen(0, "127.0.0.1");
+  await new Promise((resolve) => server.once("listening", resolve));
 });
 
-afterAll(() => teardown());
+afterAll(() => {
+  server.close();
+  teardown();
+});
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
@@ -55,20 +64,20 @@ function lastCall() {
 
 describe("status", () => {
   it("says whether the marketplace is configured and the mapped role, never the key or secret", async () => {
-    const response = await request(app).get("/api/marketplace/status");
+    const response = await request(server).get("/api/marketplace/status");
     assert.deepEqual(response.body, { configured: true, url: "https://market.example", role: "owner" });
     assert.equal(JSON.stringify(response.body).includes(KEY), false);
     assert.equal(JSON.stringify(response.body).includes(SECRET), false);
 
     env.marketplaceInstallationKey = "";
-    assert.deepEqual((await request(app).get("/api/marketplace/status")).body, { configured: false, url: null, role: "owner" });
+    assert.deepEqual((await request(server).get("/api/marketplace/status")).body, { configured: false, url: null, role: "owner" });
   });
 });
 
 describe("TC-FR01-06 marketplace unreachable", () => {
   it("TC-FR01-06 Module loads when the marketplace backend is unreachable: the proxy answers a clean 503", async () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
-    const response = await request(app).get("/api/marketplace/publisher/listings");
+    const response = await request(server).get("/api/marketplace/publisher/listings");
     assert.equal(response.status, 503);
     assert.equal(response.body.error, "Marketplace service unavailable");
     assert.equal(response.body.errorCode, "marketplace_unavailable");
@@ -76,19 +85,19 @@ describe("TC-FR01-06 marketplace unreachable", () => {
 
     // The rest of the backend keeps answering.
     fetchMock.mockResolvedValue(reply(200, []));
-    assert.equal((await request(app).get("/api/marketplace/publisher/listings")).status, 200);
+    assert.equal((await request(server).get("/api/marketplace/publisher/listings")).status, 200);
   });
 
   it("TC-FR01-06 a marketplace 5xx is reported as unavailable too", async () => {
     fetchMock.mockResolvedValue(reply(503, { error: "edge_studio_unavailable" }));
-    const response = await request(app).get("/api/marketplace/publisher/sources");
+    const response = await request(server).get("/api/marketplace/publisher/sources");
     assert.equal(response.status, 503);
     assert.equal(response.body.errorCode, "marketplace_unavailable");
   });
 
   it("answers 503 not configured without calling out when there is no key", async () => {
     env.marketplaceInstallationKey = "";
-    const response = await request(app).get("/api/marketplace/catalogue");
+    const response = await request(server).get("/api/marketplace/catalogue");
     assert.equal(response.status, 503);
     assert.equal(response.body.errorCode, "marketplace_not_configured");
     assert.equal(fetchMock.mock.calls.length, 0);
@@ -98,7 +107,7 @@ describe("TC-FR01-06 marketplace unreachable", () => {
 describe("publisher proxy", () => {
   it("TC-FR01-04 calls the marketplace as owner for the signed-in admin", async () => {
     fetchMock.mockResolvedValue(reply(200, [{ id: "SRC-1", selectable: true }]));
-    const response = await request(app).get("/api/marketplace/publisher/sources");
+    const response = await request(server).get("/api/marketplace/publisher/sources");
     assert.deepEqual(response.body, [{ id: "SRC-1", selectable: true }]);
     const call = lastCall();
     assert.equal(call.url, "https://market.example/api/publisher/sources?limit=100"); // the marketplace pages lists; its largest page
@@ -109,48 +118,48 @@ describe("publisher proxy", () => {
 
   it("forwards listing create, edit and transitions, sending only `to` (and the accepted declaration version) for a transition", async () => {
     fetchMock.mockResolvedValue(reply(201, { id: "L 1" }));
-    const created = await request(app).post("/api/marketplace/publisher/listings").send({ type: "file", billing: "one_off", title: "T" });
+    const created = await request(server).post("/api/marketplace/publisher/listings").send({ type: "file", billing: "one_off", title: "T" });
     assert.equal(created.status, 201);
     assert.deepEqual(lastCall().body, { type: "file", billing: "one_off", title: "T" });
 
     fetchMock.mockResolvedValue(reply(200, { id: "L 1" }));
-    await request(app).patch("/api/marketplace/publisher/listings/L%201").send({ title: "U" });
+    await request(server).patch("/api/marketplace/publisher/listings/L%201").send({ title: "U" });
     assert.equal(lastCall().method, "PATCH");
     assert.equal(lastCall().url, "https://market.example/api/publisher/listings/L%201");
 
-    await request(app).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", payoutWallet: "MxOTHER" });
+    await request(server).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", payoutWallet: "MxOTHER" });
     assert.equal(lastCall().url, "https://market.example/api/publisher/listings/L%201/transitions");
     assert.deepEqual(lastCall().body, { to: "published" });
     // X-05: the version of the rights declaration the user accepted travels with a publish, and nothing else.
-    await request(app).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", acceptDeclaration: 2, payoutWallet: "MxOTHER" });
+    await request(server).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", acceptDeclaration: 2, payoutWallet: "MxOTHER" });
     assert.deepEqual(lastCall().body, { to: "published", acceptDeclaration: 2 });
-    await request(app).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", acceptDeclaration: "2" });
+    await request(server).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", acceptDeclaration: "2" });
     assert.deepEqual(lastCall().body, { to: "published" });
 
     fetchMock.mockResolvedValue(reply(200, { version: 2, text: "T" }));
-    const declaration = await request(app).get("/api/marketplace/publisher/rights-declaration");
+    const declaration = await request(server).get("/api/marketplace/publisher/rights-declaration");
     assert.deepEqual(declaration.body, { version: 2, text: "T" });
     assert.equal(lastCall().url, "https://market.example/api/publisher/rights-declaration");
   });
 
   it("passes marketplace 4xx errors through with a readable message and a marketplace errorCode", async () => {
     fetchMock.mockResolvedValue(reply(422, { error: "validation", field: "title" }));
-    const invalid = await request(app).post("/api/marketplace/publisher/listings").send({});
+    const invalid = await request(server).post("/api/marketplace/publisher/listings").send({});
     assert.equal(invalid.status, 422);
     assert.equal(invalid.body.error, "The marketplace rejected the title field.");
     assert.equal(invalid.body.field, "title");
     assert.equal(invalid.body.errorCode, "marketplace_validation");
 
     fetchMock.mockResolvedValue(reply(401, { error: "unauthenticated" }));
-    const revoked = await request(app).get("/api/marketplace/publisher/earnings");
+    const revoked = await request(server).get("/api/marketplace/publisher/earnings");
     assert.equal(revoked.status, 401);
     assert.equal(revoked.body.errorCode, "marketplace_unauthenticated");
 
     fetchMock.mockResolvedValue(reply(422, { error: "source_not_verified", message: "This source is not Integritas-verified." }));
-    assert.equal((await request(app).post("/api/marketplace/publisher/listings/L1/transitions").send({ to: "published" })).body.error, "This source is not Integritas-verified.");
+    assert.equal((await request(server).post("/api/marketplace/publisher/listings/L1/transitions").send({ to: "published" })).body.error, "This source is not Integritas-verified.");
 
     fetchMock.mockResolvedValue(reply(409, "conflict"));
-    assert.equal((await request(app).post("/api/marketplace/publisher/listings/L1/transitions").send({ to: "paused" })).body.error, "The marketplace refused the request (error).");
+    assert.equal((await request(server).post("/api/marketplace/publisher/listings/L1/transitions").send({ to: "paused" })).body.error, "The marketplace refused the request (error).");
   });
 });
 
@@ -161,23 +170,23 @@ describe("catalogue proxy", () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce(reply(200, [{ id: "L1" }, { id: "L2" }], { "X-Next-Cursor": "c1" }));
     fetchMock.mockResolvedValueOnce(reply(200, [{ id: "L3" }]));
-    const res = await request(app).get("/api/marketplace/catalogue").query({ q: "soil" });
+    const res = await request(server).get("/api/marketplace/catalogue").query({ q: "soil" });
     assert.deepEqual(res.body, [{ id: "L1" }, { id: "L2" }, { id: "L3" }]);
     assert.equal(fetchMock.mock.calls[1][0], "https://market.example/api/catalogue?q=soil&limit=100&cursor=c1");
   });
 
   it("forwards only the catalogue's filters (keyword, category, type, country, format)", async () => {
     fetchMock.mockResolvedValue(reply(200, []));
-    await request(app).get("/api/marketplace/catalogue").query({ q: "soil", category: "Energy consumption", type: "file", limit: "9" });
+    await request(server).get("/api/marketplace/catalogue").query({ q: "soil", category: "Energy consumption", type: "file", limit: "9" });
     assert.equal(lastCall().url, "https://market.example/api/catalogue?q=soil&category=Energy+consumption&type=file&limit=100");
-    await request(app).get("/api/marketplace/catalogue?country=DE&country=FR&format=CSV&secret=x");
+    await request(server).get("/api/marketplace/catalogue?country=DE&country=FR&format=CSV&secret=x");
     assert.equal(lastCall().url, "https://market.example/api/catalogue?country=DE&country=FR&format=CSV&limit=100");
 
-    await request(app).get("/api/marketplace/catalogue");
+    await request(server).get("/api/marketplace/catalogue");
     assert.equal(lastCall().url, "https://market.example/api/catalogue?limit=100");
 
     fetchMock.mockResolvedValue(reply(200, { id: "L1", live: { delivery: "online" } }));
-    const detail = await request(app).get("/api/marketplace/catalogue/L1");
+    const detail = await request(server).get("/api/marketplace/catalogue/L1");
     assert.equal(detail.body.live.delivery, "online");
   });
 });
@@ -187,7 +196,7 @@ describe("delivery service relay", () => {
 
   it("refuses calls without the delivery secret", async () => {
     for (const header of [undefined, "Bearer wrong", SECRET]) {
-      const call = request(app).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").send({});
+      const call = request(server).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").send({});
       const response = await (header ? call.set("Authorization", header) : call);
       assert.equal(response.status, 401);
     }
@@ -196,7 +205,7 @@ describe("delivery service relay", () => {
 
   it("forwards a heartbeat as publisher with the decoded-then-encoded source id", async () => {
     fetchMock.mockResolvedValue(reply(200, { ok: true }));
-    const response = await request(app)
+    const response = await request(server)
       .post("/api/marketplace/delivery/sources/src%3A1/heartbeat")
       .set("Authorization", auth)
       .send({ lastDataAt: "2026-11-18T10:00:00.000Z", extra: "dropped" });
@@ -211,28 +220,28 @@ describe("delivery service relay", () => {
 
   it("forwards an address change as owner, and null clears it", async () => {
     fetchMock.mockResolvedValue(reply(200, { address: "https://seller.example:8443" }));
-    await request(app).put("/api/marketplace/delivery/sources/SRC-1/address").set("Authorization", auth).send({ address: "https://seller.example:8443" });
+    await request(server).put("/api/marketplace/delivery/sources/SRC-1/address").set("Authorization", auth).send({ address: "https://seller.example:8443" });
     assert.equal(lastCall().url, "https://market.example/api/integration/sources/SRC-1/delivery");
     assert.equal(lastCall().method, "PUT");
     assert.equal(lastCall().headers["X-Edge-Studio-Role"], "owner");
     assert.deepEqual(lastCall().body, { address: "https://seller.example:8443" });
 
     fetchMock.mockResolvedValue(reply(200, { address: null }));
-    await request(app).put("/api/marketplace/delivery/sources/SRC-1/address").set("Authorization", auth).send({ address: null });
+    await request(server).put("/api/marketplace/delivery/sources/SRC-1/address").set("Authorization", auth).send({ address: null });
     assert.deepEqual(lastCall().body, { address: null });
   });
 
   it("rejects a malformed address locally and passes marketplace 4xx through", async () => {
-    const malformed = await request(app).put("/api/marketplace/delivery/sources/SRC-1/address").set("Authorization", auth).send({ address: 42 });
+    const malformed = await request(server).put("/api/marketplace/delivery/sources/SRC-1/address").set("Authorization", auth).send({ address: 42 });
     assert.equal(malformed.status, 400);
     assert.equal(fetchMock.mock.calls.length, 0);
 
     fetchMock.mockResolvedValue(reply(404, { error: "not_found" }));
-    const missing = await request(app).post("/api/marketplace/delivery/sources/SRC-9/heartbeat").set("Authorization", auth).send({});
+    const missing = await request(server).post("/api/marketplace/delivery/sources/SRC-9/heartbeat").set("Authorization", auth).send({});
     assert.equal(missing.status, 404);
 
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
-    const down = await request(app).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").set("Authorization", auth).send({});
+    const down = await request(server).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").set("Authorization", auth).send({});
     assert.equal(down.status, 503);
   });
 });
@@ -273,14 +282,14 @@ describe("review: path safety and the delivery gate", () => {
 
   it("refuses every delivery call while the configured secret is shorter than 32 characters", async () => {
     env.marketplaceDeliverySecret = "short-secret";
-    const response = await request(app).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").set("Authorization", "Bearer short-secret").send({});
+    const response = await request(server).post("/api/marketplace/delivery/sources/SRC-1/heartbeat").set("Authorization", "Bearer short-secret").send({});
     assert.equal(response.status, 401);
     assert.equal(fetchMock.mock.calls.length, 0);
   });
 
   it("never follows a redirect with the installation key", async () => {
     fetchMock.mockResolvedValue(reply(200, []));
-    await request(app).get("/api/marketplace/publisher/listings");
+    await request(server).get("/api/marketplace/publisher/listings");
     assert.equal((fetchMock.mock.calls.at(-1)![1] as RequestInit).redirect, "error");
   });
 });
@@ -289,30 +298,30 @@ describe("review: path safety and the delivery gate", () => {
 describe("quests proxy", () => {
   it("reads open quests and the publisher's own slot requests whole, and one quest", async () => {
     fetchMock.mockResolvedValue(reply(200, [{ id: "Q1" }]));
-    assert.deepEqual((await request(app).get("/api/marketplace/quests")).body, [{ id: "Q1" }]);
+    assert.deepEqual((await request(server).get("/api/marketplace/quests")).body, [{ id: "Q1" }]);
     assert.match(lastCall().url, /^https:\/\/market\.example\/api\/quests\?limit=100$/);
-    await request(app).get("/api/marketplace/quests/claims/mine");
+    await request(server).get("/api/marketplace/quests/claims/mine");
     assert.match(lastCall().url, /^https:\/\/market\.example\/api\/quests\/claims\/mine\?limit=100$/);
     fetchMock.mockResolvedValue(reply(200, { id: "Q1" }));
-    await request(app).get("/api/marketplace/quests/Q1");
+    await request(server).get("/api/marketplace/quests/Q1");
     assert.equal(lastCall().url, "https://market.example/api/quests/Q1");
   });
 
   it("forwards only the fields each action needs, as the signed-in user", async () => {
     fetchMock.mockResolvedValue(reply(201, { claimId: "C1" }));
-    await request(app).post("/api/marketplace/quests/Q1/claims").send({ sourceId: "S1", idempotencyKey: "k1", sellerId: "someone-else" }).expect(201);
+    await request(server).post("/api/marketplace/quests/Q1/claims").send({ sourceId: "S1", idempotencyKey: "k1", sellerId: "someone-else" }).expect(201);
     assert.equal(lastCall().url, "https://market.example/api/quests/Q1/claims");
     assert.deepEqual(lastCall().body, { sourceId: "S1", idempotencyKey: "k1" });
     fetchMock.mockResolvedValue(reply(200, { slot: 2 }));
-    await request(app).post("/api/marketplace/quests/Q1/slots/2/collection").send({ anything: 1 }).expect(200);
+    await request(server).post("/api/marketplace/quests/Q1/slots/2/collection").send({ anything: 1 }).expect(200);
     assert.equal(lastCall().url, "https://market.example/api/quests/Q1/slots/2/collection");
     fetchMock.mockResolvedValue(reply(201, {}));
-    await request(app).post("/api/marketplace/quests/Q1/slots/2/disputes").send({ reason: "Readings repeat.", extra: true }).expect(201);
+    await request(server).post("/api/marketplace/quests/Q1/slots/2/disputes").send({ reason: "Readings repeat.", extra: true }).expect(201);
     assert.deepEqual(lastCall().body, { reason: "Readings repeat." });
   });
 
   it("refuses a slot that is not a whole number, before anything is forwarded", async () => {
-    const response = await request(app).post("/api/marketplace/quests/Q1/slots/..%2F1/collection");
+    const response = await request(server).post("/api/marketplace/quests/Q1/slots/..%2F1/collection");
     assert.equal(response.status, 400);
     assert.equal(fetchMock.mock.calls.length, 0);
   });
@@ -334,7 +343,7 @@ describe("quest delivery", () => {
 
   it("fingerprints the file, counts its rows per device, signs the manifest with the node key and submits it", async () => {
     nodeAndMarket();
-    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
+    const response = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
     assert.equal(response.status, 201);
     const fingerprint = sha3(NDJSON);
     const counts = { "dev-a": 2, "dev-b": 1 };
@@ -355,7 +364,7 @@ describe("quest delivery", () => {
       if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
       return reply(409, { error: "already_submitted" });
     });
-    const again = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
+    const again = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
     assert.equal(again.status, 409);
     assert.equal(fs.readFileSync(entry.path, "utf8"), NDJSON);
     fs.rmSync(entry.path, { force: true }); // this test's file
@@ -370,7 +379,7 @@ describe("quest delivery", () => {
       return reply(409, { error: "already_submitted", id: "SUB7" });
     });
     const body = '{"device_id":"lost-answer"}\n';
-    const send = () => request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(body), "lost.ndjson");
+    const send = () => request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(body), "lost.ndjson");
     const first = await send();
     assert.equal(first.status, 503);
     assert.match(first.body.error, /try again/i);
@@ -385,13 +394,13 @@ describe("quest delivery", () => {
   it("counts device ids that are also JavaScript object names, and refuses more than 1,000 devices before signing", async () => {
     nodeAndMarket();
     const odd = '{"device_id":"constructor"}\n{"device_id":"constructor"}\n{"device_id":"__proto__"}\n';
-    const ok = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(odd), "odd.ndjson");
+    const ok = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(odd), "odd.ndjson");
     assert.equal(ok.status, 201);
     assert.deepEqual(ok.body.counts, JSON.parse('{"constructor":2,"__proto__":1}')); // a literal __proto__ would set the prototype
     fs.rmSync(ok.body.deliveryConfig["quest-SUB1"].path, { force: true });
     fetchMock.mockClear();
     const many = Array.from({ length: 1001 }, (_, i) => `{"device_id":"d${i}"}`).join("\n");
-    const refused = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(many), "many.ndjson");
+    const refused = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(many), "many.ndjson");
     assert.equal(refused.status, 422);
     assert.equal(fetchMock.mock.calls.length, 0); // nothing signed, nothing asked
   });
@@ -399,7 +408,7 @@ describe("quest delivery", () => {
   it("counts a CSV file by its device_id column", async () => {
     nodeAndMarket();
     const csv = "time,device_id,value\n1,dev-a,3\n2,dev-a,4\n3,dev-c,5\n";
-    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(`\uFEFF${csv}`), "readings.csv");
+    const response = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(`\uFEFF${csv}`), "readings.csv");
     assert.equal(response.status, 201);
     assert.deepEqual(response.body.counts, { "dev-a": 2, "dev-c": 1 }); // also with a byte-order mark before the header
     fs.rmSync(response.body.deliveryConfig["quest-SUB1"].path, { force: true });
@@ -407,11 +416,11 @@ describe("quest delivery", () => {
 
   it("refuses a file without device ids, and submits nothing when the node cannot sign", async () => {
     nodeAndMarket();
-    const bad = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from('{"t":1}\n'), "x.ndjson");
+    const bad = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from('{"t":1}\n'), "x.ndjson");
     assert.equal(bad.status, 422);
     assert.equal(fetchMock.mock.calls.length, 0);
     nodeAndMarket({ status: false, error: "Maxima not running" });
-    const unsigned = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
+    const unsigned = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
     assert.equal(unsigned.status, 503);
     assert.equal(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/submissions")), false);
   });
@@ -421,10 +430,10 @@ describe("quest actions need an admin", () => {
   it("a viewer's quest actions are refused before anything is forwarded; reading is allowed", async () => {
     fetchMock.mockResolvedValue(reply(200, []));
     for (const path of ["/api/marketplace/quests/Q1/claims", "/api/marketplace/quests/Q1/slots/1/collection", "/api/marketplace/quests/Q1/slots/1/disputes", "/api/marketplace/quests/Q1/slots/1/deliveries"]) {
-      assert.equal((await request(app).post(path).set("x-test-role", "viewer").send({ sourceId: "S1", reason: "because" })).status, 403, path);
+      assert.equal((await request(server).post(path).set("x-test-role", "viewer").send({ sourceId: "S1", reason: "because" })).status, 403, path);
     }
     assert.equal(fetchMock.mock.calls.length, 0);
-    assert.equal((await request(app).get("/api/marketplace/quests/claims/mine").set("x-test-role", "viewer")).status, 200);
+    assert.equal((await request(server).get("/api/marketplace/quests/claims/mine").set("x-test-role", "viewer")).status, 200);
   });
 });
 
@@ -440,7 +449,7 @@ describe("stream feed for the delivery service", () => {
     const read = (src: string, data: unknown, status: "success" | "failed" = "success") =>
       createDataSourceRead({ dataSourceId: src, sourceName: "x", sourceUrl: "x", triggerType: "webhook", status, hash: `h-${JSON.stringify(data)}`, preview: data }).id;
     const auth = { Authorization: `Bearer ${SECRET}` };
-    const feed = (query: string) => request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads${query}`).set(auth);
+    const feed = (query: string) => request(server).get(`/api/marketplace/delivery/sources/${source.id}/reads${query}`).set(auth);
 
     read(source.id, { t: 0 }); // before the delivery service started: not delivered
     const start = await feed("");
@@ -458,7 +467,7 @@ describe("stream feed for the delivery service", () => {
     ]);
     assert.equal(next.body.cursor, b);
     assert.deepEqual((await feed(`?after=${b}`)).body.reads, []);
-    assert.equal((await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`)).status, 401); // the delivery secret is needed
+    assert.equal((await request(server).get(`/api/marketplace/delivery/sources/${source.id}/reads`)).status, 401); // the delivery secret is needed
   });
 });
 
@@ -469,7 +478,7 @@ describe("stream feed review (2026-11-19)", () => {
     const { createDataSourceRead } = await import("../../../src/features/data-reads/dataReads.repository.js");
     const source = createDataSource({ name: "Quiet", type: "webhook", config: {} }) as { id: string };
     const old = createDataSourceRead({ dataSourceId: source.id, sourceName: "x", sourceUrl: "x", triggerType: "webhook", status: "success", hash: "h", preview: { t: 0 } }).id;
-    const r = await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads?after=gone-read-id`).set(auth);
+    const r = await request(server).get(`/api/marketplace/delivery/sources/${source.id}/reads?after=gone-read-id`).set(auth);
     assert.deepEqual(r.body, { reads: [], cursor: old });
   });
 
@@ -477,15 +486,15 @@ describe("stream feed review (2026-11-19)", () => {
     const { createDataSource } = await import("../../../src/features/data-sources/dataSources.repository.js");
     for (const type of ["mqtt-output", "pi-camera"]) {
       const source = createDataSource({ name: type, type, config: {} }) as { id: string };
-      assert.equal((await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`).set(auth)).status, 404, type);
+      assert.equal((await request(server).get(`/api/marketplace/delivery/sources/${source.id}/reads`).set(auth)).status, 404, type);
     }
   });
 
   it("stream reads have their own rate limit, so polling never starves heartbeats", async () => {
     const { createDataSource } = await import("../../../src/features/data-sources/dataSources.repository.js");
     const source = createDataSource({ name: "Busy", type: "webhook", config: {} }) as { id: string };
-    for (let i = 0; i < 61; i++) await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`).set(auth).expect(200);
+    for (let i = 0; i < 61; i++) await request(server).get(`/api/marketplace/delivery/sources/${source.id}/reads`).set(auth).expect(200);
     fetchMock.mockResolvedValue(reply(204, {}));
-    assert.notEqual((await request(app).post(`/api/marketplace/delivery/sources/${source.id}/heartbeat`).set(auth).send({})).status, 429);
+    assert.notEqual((await request(server).post(`/api/marketplace/delivery/sources/${source.id}/heartbeat`).set(auth).send({})).status, 429);
   });
 });
