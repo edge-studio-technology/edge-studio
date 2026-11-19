@@ -347,14 +347,41 @@ describe("quest delivery", () => {
     const entry = response.body.deliveryConfig["quest-SUB1"];
     assert.equal(entry.fingerprint, fingerprint);
     assert.equal(fs.readFileSync(entry.path, "utf8"), NDJSON); // kept where the delivery service can serve it
+
+    // Review: the same bytes submitted again for that slot are refused by the marketplace; the file the first,
+    // live delivery serves must survive that failure.
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes("maxsign")) return reply(200, { status: true, response: { signature: "0x5160" } });
+      if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
+      return reply(409, { error: "already_submitted" });
+    });
+    const again = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
+    assert.equal(again.status, 409);
+    assert.equal(fs.readFileSync(entry.path, "utf8"), NDJSON);
+    fs.rmSync(entry.path, { force: true }); // this test's file
+  });
+
+  it("counts device ids that are also JavaScript object names, and refuses more than 1,000 devices before signing", async () => {
+    nodeAndMarket();
+    const odd = '{"device_id":"constructor"}\n{"device_id":"constructor"}\n{"device_id":"__proto__"}\n';
+    const ok = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(odd), "odd.ndjson");
+    assert.equal(ok.status, 201);
+    assert.deepEqual(ok.body.counts, JSON.parse('{"constructor":2,"__proto__":1}')); // a literal __proto__ would set the prototype
+    fs.rmSync(ok.body.deliveryConfig["quest-SUB1"].path, { force: true });
+    fetchMock.mockClear();
+    const many = Array.from({ length: 1001 }, (_, i) => `{"device_id":"d${i}"}`).join("\n");
+    const refused = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(many), "many.ndjson");
+    assert.equal(refused.status, 422);
+    assert.equal(fetchMock.mock.calls.length, 0); // nothing signed, nothing asked
   });
 
   it("counts a CSV file by its device_id column", async () => {
     nodeAndMarket();
     const csv = "time,device_id,value\n1,dev-a,3\n2,dev-a,4\n3,dev-c,5\n";
-    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(csv), "readings.csv");
+    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(`\uFEFF${csv}`), "readings.csv");
     assert.equal(response.status, 201);
-    assert.deepEqual(response.body.counts, { "dev-a": 2, "dev-c": 1 });
+    assert.deepEqual(response.body.counts, { "dev-a": 2, "dev-c": 1 }); // also with a byte-order mark before the header
+    fs.rmSync(response.body.deliveryConfig["quest-SUB1"].path, { force: true });
   });
 
   it("refuses a file without device ids, and submits nothing when the node cannot sign", async () => {

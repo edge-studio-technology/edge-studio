@@ -9,6 +9,7 @@
 //   4. submits it to the marketplace, which checks the signature with maxverify before accepting the submission.
 // The buyer then sees the signed counts before accepting, and can check the file's fingerprint after download.
 // The delivery service serves an accepted delivery as the file entry "quest-<submission id>" (its DELIVERY_CONFIG).
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { env } from "../../config/env.js";
@@ -21,15 +22,18 @@ import {
 } from "./marketplace.service.js";
 
 const DEVICE = /^[\w.:-]{1,128}$/; // the marketplace's device id rule (parseCounts)
+const MAX_DEVICES = 1_000; // the marketplace's limit (parseCounts)
 
 /**
  * Rows per device. NDJSON: one JSON object per line with a "device_id" text field. CSV: a header row with a
  * "device_id" column. Null when the file has no row with a usable device id (nothing could be counted).
  */
 function countDevices(bytes: Buffer, fileName: string): Record<string, number> | null {
-  const counts: Record<string, number> = {};
+  // No prototype: a device may be called "constructor" or "__proto__" (review 2026-11-19).
+  const counts: Record<string, number> = Object.create(null) as Record<string, number>;
   const lines = bytes
     .toString("utf8")
+    .replace(/^\uFEFF/, "") // a byte-order mark before the first line
     .split(/\r?\n/)
     .filter((line) => line.trim() !== "");
   const add = (device: unknown) => {
@@ -53,7 +57,8 @@ function countDevices(bytes: Buffer, fileName: string): Record<string, number> |
       }
     }
   }
-  return Object.keys(counts).length > 0 ? counts : null;
+  // As a plain JSON object for the answer and the manifest; JSON keeps "__proto__" as an ordinary key.
+  return Object.keys(counts).length > 0 ? (JSON.parse(JSON.stringify(counts)) as Record<string, number>) : null;
 }
 
 /** The text the marketplace verifies; the same as its manifestText (src/domain/quest.ts in the marketplace). */
@@ -96,6 +101,10 @@ export async function submitQuestDelivery(
       error:
         'The file has no rows with a device_id (NDJSON lines with a "device_id" field, or a CSV with a device_id column).',
     };
+  const devices = Object.keys(counts).length;
+  if (devices > MAX_DEVICES)
+    return { status: 422, error: `The file names ${devices} devices; a delivery may count at most ${MAX_DEVICES}. Nothing was signed or submitted.` };
+  if (!Number.isInteger(input.slot) || input.slot < 1) return { status: 422, error: "The slot must be a whole number from 1." };
   const fingerprint = sha3HashHex(input.bytes);
 
   // The manifest names the quest version the delivery answers: the quest as the marketplace has it now.
@@ -136,13 +145,15 @@ export async function submitQuestDelivery(
     };
 
   // Kept before submitting, so an accepted delivery always has its file; removed again if the submission fails.
+  // Each request writes a file of its own (a unique name, never overwriting), so a failed resubmission of the same
+  // bytes can never remove the file an earlier, live delivery is served from (review 2026-11-19).
   const folder = path.join(env.dataDir, "marketplace-deliveries");
   fs.mkdirSync(folder, { recursive: true });
   const file = path.join(
     folder,
-    `quest-${input.questId.replace(/[^\w-]/g, "_")}-slot-${input.slot}-${fingerprint}${path.extname(input.fileName).replace(/[^\w.]/g, "")}`,
+    `quest-${input.questId.replace(/[^\w-]/g, "_")}-slot-${input.slot}-${fingerprint}-${crypto.randomUUID()}${path.extname(input.fileName).replace(/[^\w.]/g, "")}`,
   );
-  fs.writeFileSync(file, input.bytes);
+  fs.writeFileSync(file, input.bytes, { flag: "wx" });
 
   const result = await marketplaceRequest(
     "POST",
@@ -158,7 +169,10 @@ export async function submitQuestDelivery(
   );
   const id = (result.body as { id?: unknown } | null)?.id;
   if (result.status !== 201 || typeof id !== "string") {
-    fs.rmSync(file, { force: true });
+    fs.rmSync(file, { force: true }); // only this request's own file
+    const code = (result.body as { error?: unknown } | null)?.error;
+    if (result.status === 422 && typeof code === "string" && code.includes("signature"))
+      return { status: 422, error: "The marketplace did not accept this node's signature: this node is not the attesting node of the source's proof. Deliver from the Edge Studio that attests the source." };
     return { status: "relay", result };
   }
   return {

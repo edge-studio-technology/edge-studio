@@ -139,7 +139,7 @@ marketplaceRouter.post(
 );
 // The publisher's delivery for a slot: the uploaded file is fingerprinted, counted per device, signed by this node
 // and submitted (questDelivery.service.ts). The answer includes the delivery service's file entry for it.
-marketplaceRouter.post("/quests/:id/slots/:slot/deliveries", requireRole("admin"), fileOperationRateLimiter, upload.single("file"), async (req, res) => {
+marketplaceRouter.post("/quests/:id/slots/:slot/deliveries", requireRole("admin"), fileOperationRateLimiter, upload.single("file"), async (req, res, next) => {
   const uploaded = req.file;
   try {
     if (!uploaded) return badRequest(res, "A delivery file is required", { field: "file" });
@@ -156,6 +156,8 @@ marketplaceRouter.post("/quests/:id/slots/:slot/deliveries", requireRole("admin"
     return sendApiError(res, outcome.status, appError({ type: outcome.status === 422 ? "invalid_delivery" : "node_unavailable", message: outcome.error }), {
       errorCode: outcome.status === 422 ? "marketplace_invalid_delivery" : "marketplace_node_unavailable",
     });
+  } catch (error) {
+    next(error); // a disk error (no space, no permission) answers 500 instead of hanging the request
   } finally {
     if (uploaded) fs.rmSync(uploaded.path, { force: true }); // the upload's temporary copy
   }
