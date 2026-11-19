@@ -7,6 +7,8 @@ import fs from "node:fs";
 import { fileOperationRateLimiter, webhookRateLimiter } from "../auth/rate-limit.middleware.js";
 import { upload } from "../integritas/upload.middleware.js";
 import { submitQuestDelivery } from "./questDelivery.service.js";
+import { listSourceReadingsAfter } from "../data-reads/dataReads.repository.js";
+import { getDataSource } from "../data-sources/dataSources.repository.js";
 import {
   isDeliveryAuthorized,
   isMarketplaceConfigured,
@@ -167,6 +169,14 @@ marketplaceRouter.post(
 // Token-authenticated like the device webhooks, so rate-limited like them.
 marketplaceDeliveryRouter.use(webhookRateLimiter);
 marketplaceDeliveryRouter.use((req, res, next) => (isDeliveryAuthorized(req.headers.authorization) ? next() : unauthorized(res)));
+
+// FR-17 live streams: the delivery service polls a source's new readings (in recorded order) and delivers them to
+// subscribed buyers in batches. Only a source of this installation; the delivery secret is required (above).
+marketplaceDeliveryRouter.get("/sources/:id/reads", (req, res) => {
+  if (!getDataSource(req.params.id)) return res.status(404).json({ error: "not_found" });
+  const after = typeof req.query.after === "string" ? req.query.after : undefined;
+  return res.json(listSourceReadingsAfter(req.params.id, after));
+});
 
 // Where buyers are sent is the owner's decision, so the address change is made as owner.
 marketplaceDeliveryRouter.put(

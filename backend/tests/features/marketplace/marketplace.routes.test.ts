@@ -379,3 +379,37 @@ describe("quest actions need an admin", () => {
     assert.equal((await request(app).get("/api/marketplace/quests/claims/mine").set("x-test-role", "viewer")).status, 200);
   });
 });
+
+// FR-17 live streams: the publisher's delivery service reads a source's new readings from here (delivery secret),
+// in the order they were recorded, starting from "now" on its first call.
+describe("stream feed for the delivery service", () => {
+  it("lists a source's successful readings after a cursor, oldest first, with each reading's attested hash and proof", async () => {
+    const { createDataSource } = await import("../../../src/features/data-sources/dataSources.repository.js");
+    const { createDataSourceRead, linkDataSourceReadProof } = await import("../../../src/features/data-reads/dataReads.repository.js");
+    const { createProofRecord } = await import("../../../src/features/integritas/integritas.repository.js");
+    const source = createDataSource({ name: "Greenhouse", type: "webhook", config: {} }) as { id: string };
+    const other = createDataSource({ name: "Other", type: "webhook", config: {} }) as { id: string };
+    const read = (src: string, data: unknown, status: "success" | "failed" = "success") =>
+      createDataSourceRead({ dataSourceId: src, sourceName: "x", sourceUrl: "x", triggerType: "webhook", status, hash: `h-${JSON.stringify(data)}`, preview: data }).id;
+    const auth = { Authorization: `Bearer ${SECRET}` };
+    const feed = (query: string) => request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads${query}`).set(auth);
+
+    read(source.id, { t: 0 }); // before the delivery service started: not delivered
+    const start = await feed("");
+    assert.equal(start.status, 200);
+    assert.deepEqual(start.body.reads, []);
+    const a = read(source.id, { t: 1 });
+    read(source.id, { t: 2 }, "failed"); // a failed read is not a reading
+    read(other.id, { t: 3 }); // another source's reading is not this stream's
+    const b = read(source.id, { t: 4 });
+    linkDataSourceReadProof(b, createProofRecord({ hash: "h-{\"t\":4}", proofUid: "uid-4", proofStatus: "complete" }).id);
+    const next = await feed(`?after=${start.body.cursor}`);
+    assert.deepEqual(next.body.reads.map((r: { id: string; data: unknown; hash: string; proof: string | null }) => [r.id, r.data, r.hash, r.proof]), [
+      [a, { t: 1 }, 'h-{"t":1}', null],
+      [b, { t: 4 }, 'h-{"t":4}', "integritas:uid:uid-4"],
+    ]);
+    assert.equal(next.body.cursor, b);
+    assert.deepEqual((await feed(`?after=${b}`)).body.reads, []);
+    assert.equal((await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`)).status, 401); // the delivery secret is needed
+  });
+});
