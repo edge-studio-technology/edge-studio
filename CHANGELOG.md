@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 New releases are prepared by release-please from Conventional commit subjects; see [the release guide](docs/guides/releases.md). Earlier entries retain their original Keep a Changelog format.
 
+## [0.45.1](https://github.com/edge-studio-technology/edge-studio/compare/v0.45.0...v0.45.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **uninstall:** restore confirmation for piped commands ([#192](https://github.com/edge-studio-technology/edge-studio/issues/192)) ([8246640](https://github.com/edge-studio-technology/edge-studio/commit/8246640a8e977a3a9ad12a7d34731ec2ace38f4b))
+
 ## [0.45.0](https://github.com/edge-studio-technology/edge-studio/compare/v0.44.0...v0.45.0) (2026-11-17)
 
 
