@@ -3,7 +3,7 @@
 //   Open quests     funded quests anyone can contribute to; ask for a slot with one of your verified sources
 //   My quest slots  your requests (waiting, declined) and the slots the buyer gave you: say when collection has
 //                   started (from then on a cancelled quest keeps your slot until its deadline), and open a dispute
-//                   about an award during the hold period
+//                   about an award during the hold period; deliver a file for the slot (signed by this node)
 // Everything goes through Edge Studio's backend (GET/POST /api/marketplace/quests...), which holds the installation
 // key; the marketplace enforces every rule and its answer is shown as it is.
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,11 +24,13 @@ import {
   getPublisherSources,
   requestQuestSlot,
   startQuestCollection,
+  submitQuestDeliveryFile,
   utcText,
   type MarketplaceRole,
   type OpenQuest,
   type PublisherSource,
   type QuestClaim,
+  type QuestDelivery,
 } from "./marketplaceApi";
 
 const failureText = (failure: unknown) =>
@@ -191,7 +193,10 @@ function ClaimItem({
   onDone: () => Promise<void>;
 }) {
   const [reason, setReason] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [delivered, setDelivered] = useState<QuestDelivery | null>(null);
+  const [busy, setBusy] = useState(false);
   const title = claim.questTitle ?? "Untitled quest";
   const status =
     claim.status === "requested"
@@ -202,14 +207,23 @@ function ClaimItem({
 
   async function run(action: () => Promise<unknown>, done: string) {
     setMessage(null);
+    setBusy(true);
     try {
       await action();
-      setMessage(done);
+      setMessage({ text: done, error: false });
       await onDone();
     } catch (failure) {
-      setMessage(failureText(failure));
+      setMessage({ text: failureText(failure), error: true });
+    } finally {
+      setBusy(false);
     }
   }
+  // A delivery can be made while the slot is the publisher's and not yet accepted (also again after a rejection).
+  const mayDeliver =
+    mayAct &&
+    claim.slot !== null &&
+    claim.questStatus === "active" &&
+    (claim.slotState === "committed" || claim.slotState === "rejected");
 
   return (
     <article className="border-stroke-primary rounded border p-3">
@@ -264,9 +278,69 @@ function ClaimItem({
           </div>
         </div>
       )}
+      {mayDeliver && (
+        <div className="mt-2 flex flex-col gap-1">
+          <label className="type-body text-text-primary flex flex-col">
+            {`Delivery file for ${title}, slot ${claim.slot}`}
+            <input
+              type="file"
+              accept=".ndjson,.jsonl,.json,.csv"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <p className="type-body text-text-secondary m-0">
+            NDJSON lines with a &quot;device_id&quot; field, or a CSV with a device_id column. Edge
+            Studio counts the rows per device and this node signs the counts.
+          </p>
+          <div>
+            <Button
+              disabled={!file || busy}
+              onClick={() =>
+                void run(
+                  async () =>
+                    setDelivered(
+                      await submitQuestDeliveryFile(
+                        claim.questId,
+                        claim.slot!,
+                        claim.sourceId,
+                        file!,
+                      ),
+                    ),
+                  "Delivery submitted: the buyer reviews it.",
+                )
+              }
+            >
+              Sign and submit the delivery
+            </Button>
+          </div>
+        </div>
+      )}
+      {delivered && (
+        <div className="mt-2 flex flex-col gap-1">
+          <p className="type-body text-text-primary m-0">
+            Fingerprint (SHA3-256):{" "}
+            <span className="font-mono break-all">{delivered.fingerprint}</span>
+          </p>
+          <ul className="type-body text-text-primary m-0">
+            {Object.entries(delivered.counts).map(([device, n]) => (
+              <li key={device}>{`${device}: ${n} rows`}</li>
+            ))}
+          </ul>
+          <p className="type-body text-text-secondary m-0">
+            Add this entry to your delivery service&apos;s DELIVERY_CONFIG &quot;files&quot; so the
+            buyer can download it once accepted:
+          </p>
+          <pre className="type-body m-0 break-all whitespace-pre-wrap">
+            {JSON.stringify(delivered.deliveryConfig, null, 2)}
+          </pre>
+        </div>
+      )}
       {message && (
-        <p className="type-body text-text-primary m-0" role="status">
-          {message}
+        <p
+          className={`type-body m-0 ${message.error ? "text-text-error" : "text-text-primary"}`}
+          role={message.error ? "alert" : "status"}
+        >
+          {message.text}
         </p>
       )}
     </article>

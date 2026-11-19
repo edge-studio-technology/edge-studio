@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import fs from "node:fs";
 import http from "node:http";
 import express from "express";
 import request from "supertest";
@@ -21,7 +23,10 @@ beforeAll(async () => {
   app.use(express.json());
   app.use("/api/marketplace/delivery", marketplaceDeliveryRouter);
   app.use((req, _res, next) => {
-    req.user = { id: "admin-1", displayName: "Admin", role: "admin", lastLogin: null, credentialType: "password" };
+    // An admin unless a test asks for another Edge Studio role (x-test-role), to check the role gates.
+    const role = (req.headers["x-test-role"] as "admin" | "viewer" | undefined) ?? "admin";
+    // Edge Studio has only admins today (UserRole); a non-admin is cast to prove the gates hold for any other role.
+    req.user = { id: `${role}-1`, displayName: role, role: role as "admin", lastLogin: null, credentialType: "password" };
     next();
   });
   app.use("/api/marketplace", marketplaceRouter);
@@ -310,5 +315,67 @@ describe("quests proxy", () => {
     const response = await request(app).post("/api/marketplace/quests/Q1/slots/..%2F1/collection");
     assert.equal(response.status, 400);
     assert.equal(fetchMock.mock.calls.length, 0);
+  });
+});
+
+// #1380: a quest delivery. The publisher's file is fingerprinted (SHA3-256), counted per device from its own rows,
+// and its manifest signed by this node's Maxima key exactly as the marketplace checks it (src/domain/quest.ts there).
+describe("quest delivery", () => {
+  const NDJSON = '{"device_id":"dev-b","t":1}\n{"device_id":"dev-a","t":2}\n{"device_id":"dev-a","t":3}\n';
+  const sha3 = (text: string) => crypto.createHash("sha3-256").update(text).digest("hex") as string;
+  function nodeAndMarket(sign: unknown = { status: true, response: { signature: "0x5160" } }) {
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes("maxsign")) return reply(200, sign);
+      if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
+      if (url.endsWith("/api/quests/Q1/submissions")) return reply(201, { id: "SUB1", status: "submitted" });
+      return reply(404, {});
+    });
+  }
+
+  it("fingerprints the file, counts its rows per device, signs the manifest with the node key and submits it", async () => {
+    nodeAndMarket();
+    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
+    assert.equal(response.status, 201);
+    const fingerprint = sha3(NDJSON);
+    const counts = { "dev-a": 2, "dev-b": 1 };
+    const text = `edge-marketplace-quest-manifest:${JSON.stringify({ questId: "Q1", questVersion: 2, slot: 2, fingerprint, counts })}`;
+    const signCall = fetchMock.mock.calls.map(([url]) => decodeURIComponent(String(url))).find((url) => url.includes("maxsign"))!;
+    assert.ok(signCall.endsWith(`maxsign data:0x${Buffer.from(text, "utf8").toString("hex").toUpperCase()}`));
+    assert.deepEqual(lastCall().body, { slot: 2, questVersion: 2, sourceId: "SRC-V", fingerprint, manifest: { counts, signature: "0x5160" } });
+    assert.equal(response.body.submissionId, "SUB1");
+    assert.deepEqual(response.body.counts, counts);
+    const entry = response.body.deliveryConfig["quest-SUB1"];
+    assert.equal(entry.fingerprint, fingerprint);
+    assert.equal(fs.readFileSync(entry.path, "utf8"), NDJSON); // kept where the delivery service can serve it
+  });
+
+  it("counts a CSV file by its device_id column", async () => {
+    nodeAndMarket();
+    const csv = "time,device_id,value\n1,dev-a,3\n2,dev-a,4\n3,dev-c,5\n";
+    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(csv), "readings.csv");
+    assert.equal(response.status, 201);
+    assert.deepEqual(response.body.counts, { "dev-a": 2, "dev-c": 1 });
+  });
+
+  it("refuses a file without device ids, and submits nothing when the node cannot sign", async () => {
+    nodeAndMarket();
+    const bad = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from('{"t":1}\n'), "x.ndjson");
+    assert.equal(bad.status, 422);
+    assert.equal(fetchMock.mock.calls.length, 0);
+    nodeAndMarket({ status: false, error: "Maxima not running" });
+    const unsigned = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
+    assert.equal(unsigned.status, 503);
+    assert.equal(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/submissions")), false);
+  });
+});
+
+describe("quest actions need an admin", () => {
+  it("a viewer's quest actions are refused before anything is forwarded; reading is allowed", async () => {
+    fetchMock.mockResolvedValue(reply(200, []));
+    for (const path of ["/api/marketplace/quests/Q1/claims", "/api/marketplace/quests/Q1/slots/1/collection", "/api/marketplace/quests/Q1/slots/1/disputes", "/api/marketplace/quests/Q1/slots/1/deliveries"]) {
+      assert.equal((await request(app).post(path).set("x-test-role", "viewer").send({ sourceId: "S1", reason: "because" })).status, 403, path);
+    }
+    assert.equal(fetchMock.mock.calls.length, 0);
+    assert.equal((await request(app).get("/api/marketplace/quests/claims/mine").set("x-test-role", "viewer")).status, 200);
   });
 });

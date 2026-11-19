@@ -13,6 +13,7 @@ const api = vi.hoisted(() => ({
   requestQuestSlot: vi.fn(),
   startQuestCollection: vi.fn(),
   disputeQuestSlot: vi.fn(),
+  submitQuestDeliveryFile: vi.fn(),
 }));
 vi.mock("../../../src/features/marketplace/marketplaceApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/features/marketplace/marketplaceApi")>()),
@@ -158,5 +159,48 @@ describe("PublisherQuests", () => {
     await screen.findByRole("region", { name: "Open quests" });
     expect(screen.queryByRole("button", { name: "Ask for a slot" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Collection has started" })).toBeNull();
+  });
+
+  it("delivers a file for a slot: the node-signed counts, the full fingerprint and the delivery service entry are shown", async () => {
+    const FP = "ab".repeat(32);
+    api.submitQuestDeliveryFile.mockResolvedValue({
+      submissionId: "SUB1",
+      fingerprint: FP,
+      counts: { "dev-a": 2, "dev-b": 1 },
+      deliveryConfig: {
+        "quest-SUB1": {
+          path: "/data/marketplace-deliveries/quest-Q1-slot-2.ndjson",
+          fingerprint: FP,
+        },
+      },
+    });
+    renderQuests();
+    const mine = await screen.findByRole("region", { name: "My quest slots" });
+    const file = new File(['{"device_id":"dev-a"}\n'], "readings.ndjson", {
+      type: "application/x-ndjson",
+    });
+    await userEvent.upload(
+      within(mine).getByLabelText("Delivery file for Soil moisture, five sites, slot 2"),
+      file,
+    );
+    await userEvent.click(
+      within(mine).getByRole("button", { name: "Sign and submit the delivery" }),
+    );
+    expect(api.submitQuestDeliveryFile).toHaveBeenCalledWith("Q1", 2, "SRC-V", file);
+    expect(await within(mine).findByText(FP)).toBeInTheDocument();
+    expect(within(mine).getByText("dev-a: 2 rows")).toBeInTheDocument();
+    expect(within(mine).getByText(/"quest-SUB1"/)).toBeInTheDocument(); // the entry to add to the delivery service
+  });
+
+  it("shows a refused action as an error", async () => {
+    api.startQuestCollection.mockRejectedValue(
+      new Error("The marketplace refused the request (not_open)."),
+    );
+    renderQuests();
+    const mine = await screen.findByRole("region", { name: "My quest slots" });
+    await userEvent.click(within(mine).getByRole("button", { name: "Collection has started" }));
+    expect(await within(mine).findByRole("alert")).toHaveTextContent(
+      "The marketplace refused the request (not_open).",
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { getJson, postJson } from "../../lib/api";
+import { getJson, postForm, postJson } from "../../lib/api";
 
 // The browser only talks to Edge Studio's backend; the backend holds the marketplace installation key.
 
@@ -202,4 +202,20 @@ export function utcText(iso: string | null) {
   if (!date || Number.isNaN(date.getTime())) return "not set";
   const z = date.toISOString();
   return `${z.slice(0, 10)} ${z.slice(11, 16)} UTC`;
+}
+
+/** What Edge Studio built and submitted for a quest slot (backend questDelivery.service.ts). */
+export type QuestDelivery = {
+  submissionId: string;
+  fingerprint: string;
+  counts: Record<string, number>;
+  /** The entry to add to the delivery service's DELIVERY_CONFIG "files", so the buyer can download it once accepted. */
+  deliveryConfig: Record<string, { path: string; fingerprint: string }>;
+};
+/** Uploads the delivery file; the backend fingerprints it, counts it per device, has the node sign it and submits it. */
+export function submitQuestDeliveryFile(questId: string, slot: number, sourceId: string, file: File) {
+  const form = new FormData();
+  form.append("sourceId", sourceId);
+  form.append("file", file);
+  return postForm<QuestDelivery>(`/api/marketplace/quests/${encodeURIComponent(questId)}/slots/${slot}/deliveries`, form);
 }

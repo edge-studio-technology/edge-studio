@@ -3,7 +3,10 @@ import { env } from "../../config/env.js";
 import { badRequest, sendApiError, unauthorized } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
-import { webhookRateLimiter } from "../auth/rate-limit.middleware.js";
+import fs from "node:fs";
+import { fileOperationRateLimiter, webhookRateLimiter } from "../auth/rate-limit.middleware.js";
+import { upload } from "../integritas/upload.middleware.js";
+import { submitQuestDelivery } from "./questDelivery.service.js";
 import {
   isDeliveryAuthorized,
   isMarketplaceConfigured,
@@ -132,6 +135,29 @@ marketplaceRouter.post(
   requireRole("admin"),
   forward(sessionActor, "POST", (req) => `/api/quests/${id(req.params.id)}/slots/${req.params.slot}/collection`)
 );
+// The publisher's delivery for a slot: the uploaded file is fingerprinted, counted per device, signed by this node
+// and submitted (questDelivery.service.ts). The answer includes the delivery service's file entry for it.
+marketplaceRouter.post("/quests/:id/slots/:slot/deliveries", requireRole("admin"), fileOperationRateLimiter, upload.single("file"), async (req, res) => {
+  const uploaded = req.file;
+  try {
+    if (!uploaded) return badRequest(res, "A delivery file is required", { field: "file" });
+    if (typeof req.body?.sourceId !== "string" || !req.body.sourceId) return badRequest(res, "sourceId is required", { field: "sourceId" });
+    if (!isMarketplaceConfigured()) {
+      return sendApiError(res, 503, systemError({ type: "not_configured", message: "The marketplace is not configured on this installation" }), { errorCode: "marketplace_not_configured" });
+    }
+    const outcome = await submitQuestDelivery(
+      { questId: req.params.id, slot: Number(req.params.slot), sourceId: req.body.sourceId, fileName: uploaded.originalname, bytes: fs.readFileSync(uploaded.path) },
+      sessionActor(req)
+    );
+    if (outcome.status === "relay") return relay(res, outcome.result);
+    if (outcome.status === 201) return res.status(201).json(outcome.body);
+    return sendApiError(res, outcome.status, appError({ type: outcome.status === 422 ? "invalid_delivery" : "node_unavailable", message: outcome.error }), {
+      errorCode: outcome.status === 422 ? "marketplace_invalid_delivery" : "marketplace_node_unavailable",
+    });
+  } finally {
+    if (uploaded) fs.rmSync(uploaded.path, { force: true }); // the upload's temporary copy
+  }
+});
 marketplaceRouter.post(
   "/quests/:id/slots/:slot/disputes",
   requireRole("admin"),
