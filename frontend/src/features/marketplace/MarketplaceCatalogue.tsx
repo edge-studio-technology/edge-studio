@@ -11,6 +11,7 @@ import { LoadingState } from "../../components/patterns/LoadingState";
 import {
   CATEGORIES,
   getCatalogueListing,
+  licenceLabel,
   priceText,
   PRODUCT_TYPES,
   searchCatalogue,
@@ -68,7 +69,7 @@ function ListingDetails({ id, marketplaceUrl, onClose }: { id: string; marketpla
             <dt className="text-text-secondary">Format</dt>
             <dd className="m-0">{listing.format}</dd>
             <dt className="text-text-secondary">Licence</dt>
-            <dd className="m-0">{listing.licence}</dd>
+            <dd className="m-0">{licenceLabel(listing.licence)}</dd>
             <dt className="text-text-secondary">Availability</dt>
             <dd className="m-0">{listing.availability}</dd>
             <dt className="text-text-secondary">Delivery</dt>

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   canPublish,
+  LICENCES,
   getCatalogueListing,
   listingPayload,
   nextTransitions,
@@ -26,7 +27,8 @@ const draft: ListingDraft = {
   category: "Agriculture and growing conditions",
   description: "Hourly readings",
   format: "CSV",
-  licence: " CC-BY-4.0 ",
+  licence: "CC-BY-4.0",
+  licenceText: "",
   price: " 25.00 ",
   availability: " 2025 ",
 };
@@ -64,6 +66,15 @@ describe("TC-FR03-03 listingPayload", () => {
       availability: "2025",
     });
     expect(listingPayload({ ...draft, type: "stream" })).toMatchObject({ billing: "monthly", deliveryMethod: "Seller-hosted stream" });
+  });
+});
+
+// The marketplace's fixed licence list (docs/IMPLEMENTATION-RULES-FINAL.md §2 in the marketplace repository).
+describe("licence", () => {
+  it("offers exactly the marketplace's four licences; a custom licence sends its own text", () => {
+    expect(LICENCES.map((l) => l.value)).toEqual(["CC-BY-4.0", "CC-BY-NC-4.0", "Commercial-Single-Organisation", "Custom"]);
+    expect(listingPayload({ ...draft, licence: "Custom", licenceText: "Research use only." })).toMatchObject({ licence: "Custom", licenceText: "Research use only." });
+    expect(listingPayload({ ...draft, licenceText: "ignored" })).not.toHaveProperty("licenceText");
   });
 });
 

@@ -38,6 +38,14 @@ export const CATEGORIES = [
   "Other approved data streams (e.g. video)",
 ];
 export const FORMATS = ["CSV", "JSON", "NDJSON", "Parquet"];
+/** The marketplace's fixed licence list; "Custom" carries the seller's own text (up to 5,000 characters). */
+export const LICENCES = [
+  { value: "CC-BY-4.0", label: "Creative Commons Attribution 4.0 (CC BY 4.0)" },
+  { value: "CC-BY-NC-4.0", label: "Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0)" },
+  { value: "Commercial-Single-Organisation", label: "Commercial licence, single organisation" },
+  { value: "Custom", label: "My own licence" },
+];
+export const licenceLabel = (value: string | null) => LICENCES.find((l) => l.value === value)?.label ?? value ?? "";
 
 /** Billing and delivery follow the type, so switching type can never leave a stale value (TC-FR03-03). */
 const TYPE_FIELDS = {
@@ -53,6 +61,7 @@ export type ListingDraft = {
   description: string;
   format: string;
   licence: string;
+  licenceText: string;
   price: string;
   availability: string;
 };
@@ -66,7 +75,8 @@ export function listingPayload(draft: ListingDraft) {
     category: draft.category,
     description: draft.description,
     format: draft.format,
-    licence: draft.licence.trim(),
+    licence: draft.licence,
+    ...(draft.licence === "Custom" && { licenceText: draft.licenceText }),
     price: { amount: draft.price.trim(), currency: "USD" },
     availability: draft.availability.trim(),
   };

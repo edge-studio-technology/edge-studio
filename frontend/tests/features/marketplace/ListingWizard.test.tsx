@@ -28,7 +28,7 @@ async function fillRequired() {
   await user.selectOptions(screen.getByLabelText(/Category/), "Agriculture and growing conditions");
   await user.type(screen.getByLabelText(/Description/), "Hourly climate");
   await user.selectOptions(screen.getByLabelText(/Format/), "CSV");
-  await user.type(screen.getByLabelText(/Licence/), "CC-BY-4.0");
+  await user.selectOptions(screen.getByLabelText(/^Licence/), "CC-BY-4.0");
   await user.type(screen.getByLabelText(/Price/), "25.00");
   await user.type(screen.getByLabelText(/Availability/), "2025 season");
   return user;
@@ -66,6 +66,18 @@ describe("ListingWizard", () => {
     expect(saved).toMatchObject({ type: "file", billing: "one_off", deliveryMethod: "Seller-hosted download" });
     expect(JSON.stringify(saved)).not.toMatch(/monthly|stream/i);
     expect(onCreated).toHaveBeenCalledOnce();
+  });
+
+  it("a custom licence asks for its text and sends it; the other licences have none", async () => {
+    createListing.mockResolvedValue({ id: "L-2" });
+    renderWizard();
+    const user = await fillRequired();
+    expect(screen.queryByLabelText(/Licence text/)).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText(/^Licence/), "Custom");
+    await user.type(screen.getByLabelText(/Licence text/), "Research use only.");
+    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    const { listingPayload } = await import("../../../src/features/marketplace/marketplaceApi");
+    expect(listingPayload(createListing.mock.calls[0][0])).toMatchObject({ licence: "Custom", licenceText: "Research use only." });
   });
 
   it("TC-FR01-04 offers only the seller's own sources, disables ineligible ones and never a payout wallet", () => {

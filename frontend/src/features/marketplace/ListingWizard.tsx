@@ -11,6 +11,7 @@ import {
   CATEGORIES,
   createListing,
   FORMATS,
+  LICENCES,
   PRODUCT_TYPES,
   type ListingDraft,
   type PublisherSource,
@@ -24,6 +25,7 @@ const EMPTY: ListingDraft = {
   description: "",
   format: "",
   licence: "",
+  licenceText: "",
   price: "",
   availability: "",
 };
@@ -130,7 +132,26 @@ export function ListingWizard({
           error={fieldError("format")}
           onChange={(event) => set("format")(event.target.value)}
         />
-        <InputField label="Licence" required value={draft.licence} error={fieldError("licence")} onChange={(event) => set("licence")(event.target.value)} />
+        <SelectField
+          label="Licence"
+          required
+          value={draft.licence}
+          placeholder="Choose a licence"
+          options={LICENCES}
+          error={fieldError("licence")}
+          onChange={(event) => set("licence")(event.target.value)}
+        />
+        {draft.licence === "Custom" && (
+          <TextareaField
+            label="Licence text"
+            description="Shown to buyers in full before they accept it. Up to 5,000 characters."
+            required
+            maxLength={5000}
+            value={draft.licenceText}
+            error={fieldError("licenceText")}
+            onChange={(event) => set("licenceText")(event.target.value)}
+          />
+        )}
         <InputField
           label={draft.type === "stream" ? "Price per month (USD)" : "Price (USD)"}
           description="0 for free, or 5.00 to 1,000.00."

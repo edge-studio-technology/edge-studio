@@ -109,7 +109,7 @@ describe("PublisherListings", () => {
     await user.selectOptions(screen.getByLabelText(/Category/), "Energy consumption");
     await user.type(screen.getByLabelText(/Description/), "D");
     await user.selectOptions(screen.getByLabelText(/Format/), "JSON");
-    await user.type(screen.getByLabelText(/Licence/), "L");
+    await user.selectOptions(screen.getByLabelText(/^Licence/), "Commercial-Single-Organisation");
     await user.type(screen.getByLabelText(/Price/), "5");
     await user.type(screen.getByLabelText(/Availability/), "Always");
     await user.click(screen.getByRole("button", { name: "Save draft" }));
