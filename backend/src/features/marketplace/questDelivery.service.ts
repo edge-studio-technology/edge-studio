@@ -9,7 +9,6 @@
 //   4. submits it to the marketplace, which checks the signature with maxverify before accepting the submission.
 // The buyer then sees the signed counts before accepting, and can check the file's fingerprint after download.
 // The delivery service serves an accepted delivery as the file entry "quest-<submission id>" (its DELIVERY_CONFIG).
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { env } from "../../config/env.js";
@@ -58,7 +57,9 @@ function countDevices(bytes: Buffer, fileName: string): Record<string, number> |
     }
   }
   // As a plain JSON object for the answer and the manifest; JSON keeps "__proto__" as an ordinary key.
-  return Object.keys(counts).length > 0 ? (JSON.parse(JSON.stringify(counts)) as Record<string, number>) : null;
+  return Object.keys(counts).length > 0
+    ? (JSON.parse(JSON.stringify(counts)) as Record<string, number>)
+    : null;
 }
 
 /** The text the marketplace verifies; the same as its manifestText (src/domain/quest.ts in the marketplace). */
@@ -103,8 +104,12 @@ export async function submitQuestDelivery(
     };
   const devices = Object.keys(counts).length;
   if (devices > MAX_DEVICES)
-    return { status: 422, error: `The file names ${devices} devices; a delivery may count at most ${MAX_DEVICES}. Nothing was signed or submitted.` };
-  if (!Number.isInteger(input.slot) || input.slot < 1) return { status: 422, error: "The slot must be a whole number from 1." };
+    return {
+      status: 422,
+      error: `The file names ${devices} devices; a delivery may count at most ${MAX_DEVICES}. Nothing was signed or submitted.`,
+    };
+  if (!Number.isInteger(input.slot) || input.slot < 1)
+    return { status: 422, error: "The slot must be a whole number from 1." };
   const fingerprint = sha3HashHex(input.bytes);
 
   // The manifest names the quest version the delivery answers: the quest as the marketplace has it now.
@@ -149,11 +154,19 @@ export async function submitQuestDelivery(
   // bytes can never remove the file an earlier, live delivery is served from (review 2026-11-19).
   const folder = path.join(env.dataDir, "marketplace-deliveries");
   fs.mkdirSync(folder, { recursive: true });
+  // One name per quest, slot and content (review 2026-11-19): a retry of the same file finds the file it kept, and a
+  // request only ever removes a file it created itself, so a live delivery's file is never removed.
   const file = path.join(
     folder,
-    `quest-${input.questId.replace(/[^\w-]/g, "_")}-slot-${input.slot}-${fingerprint}-${crypto.randomUUID()}${path.extname(input.fileName).replace(/[^\w.]/g, "")}`,
+    `quest-${input.questId.replace(/[^\w-]/g, "_")}-slot-${input.slot}-${fingerprint}${path.extname(input.fileName).replace(/[^\w.]/g, "")}`,
   );
-  fs.writeFileSync(file, input.bytes, { flag: "wx" });
+  let created = true;
+  try {
+    fs.writeFileSync(file, input.bytes, { flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    created = false; // the same bytes (same fingerprint) are already kept
+  }
 
   const result = await marketplaceRequest(
     "POST",
@@ -167,14 +180,34 @@ export async function submitQuestDelivery(
       manifest: { counts, signature },
     },
   );
-  const id = (result.body as { id?: unknown } | null)?.id;
-  if (result.status !== 201 || typeof id !== "string") {
-    // Only this request's own file, and only when the marketplace answered that it refused the submission. With no
-    // answer (status 0) or a server error it may have saved it: the file is kept for that delivery (review 2026-11-19).
-    if (result.status >= 400 && result.status < 500) fs.rmSync(file, { force: true });
-    const code = (result.body as { error?: unknown } | null)?.error;
-    if (result.status === 422 && typeof code === "string" && code.includes("signature"))
-      return { status: 422, error: "The marketplace did not accept this node's signature: this node is not the attesting node of the source's proof. Deliver from the Edge Studio that attests the source." };
+  const body = result.body as { id?: unknown; error?: unknown } | null;
+  // The marketplace already has exactly this delivery (a retry after a lost answer): it names the submission.
+  const id =
+    result.status === 201
+      ? body?.id
+      : result.status === 409 && body?.error === "already_submitted"
+        ? body?.id
+        : undefined;
+  if (typeof id !== "string") {
+    // No answer (status 0) or a server error: the marketplace may have saved it. The file is kept, and sending the
+    // same file again recognises it.
+    if (result.status === 0 || result.status >= 500)
+      return {
+        status: 503,
+        error:
+          "The marketplace's answer did not arrive, so it may have saved the delivery. Try again with the same file: it is recognised and nothing is submitted twice.",
+      };
+    if (created) fs.rmSync(file, { force: true }); // refused: only a file this request created is removed
+    if (
+      result.status === 422 &&
+      typeof body?.error === "string" &&
+      body.error.includes("signature")
+    )
+      return {
+        status: 422,
+        error:
+          "The marketplace could not verify this node's signature. This node may not be the attesting node of the source's proof, the source may have no proof yet, or the marketplace's node may be unreachable.",
+      };
     return { status: "relay", result };
   }
   return {

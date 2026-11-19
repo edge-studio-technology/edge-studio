@@ -361,20 +361,25 @@ describe("quest delivery", () => {
     fs.rmSync(entry.path, { force: true }); // this test's file
   });
 
-  it("keeps the file when the marketplace's answer was lost (it may have saved the submission)", async () => {
-    nodeAndMarket();
+  it("after a lost answer, retrying the same file recovers: the submission's id and the kept file's entry come back", async () => {
+    let lost = true;
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url.includes("maxsign")) return reply(200, { status: true, response: { signature: "0x5160" } });
       if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
-      throw new TypeError("fetch failed"); // the submission's answer never arrives
+      if (lost) { lost = false; throw new TypeError("fetch failed"); } // saved by the marketplace, answer lost
+      return reply(409, { error: "already_submitted", id: "SUB7" });
     });
     const body = '{"device_id":"lost-answer"}\n';
-    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(body), "lost.ndjson");
-    assert.equal(response.status, 503);
-    const folder = (await import("node:path")).join(env.dataDir, "marketplace-deliveries");
-    const kept = fs.readdirSync(folder).filter((f) => f.includes(crypto.createHash("sha3-256").update(body).digest("hex")));
-    assert.equal(kept.length, 1);
-    kept.forEach((f) => fs.rmSync(`${folder}/${f}`, { force: true }));
+    const send = () => request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(body), "lost.ndjson");
+    const first = await send();
+    assert.equal(first.status, 503);
+    assert.match(first.body.error, /try again/i);
+    const retry = await send();
+    assert.equal(retry.status, 201);
+    assert.equal(retry.body.submissionId, "SUB7");
+    const entry = retry.body.deliveryConfig["quest-SUB7"];
+    assert.equal(fs.readFileSync(entry.path, "utf8"), body); // the file kept from the first attempt
+    fs.rmSync(entry.path, { force: true });
   });
 
   it("counts device ids that are also JavaScript object names, and refuses more than 1,000 devices before signing", async () => {
