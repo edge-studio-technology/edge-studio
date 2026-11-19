@@ -13,7 +13,8 @@ import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 export type MarketplaceRole = "owner" | "publisher" | "viewer";
 export type MarketplaceActor = { userId: string; role: MarketplaceRole };
 /** `status` 0 means the marketplace could not be reached. */
-export type MarketplaceResult = { status: number; body: unknown };
+// next: the marketplace's X-Next-Cursor, when the answer is one page of a longer list.
+export type MarketplaceResult = { status: number; body: unknown; next?: string | null };
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const SYNC_DELAY_MS = 1_000;
@@ -54,7 +55,7 @@ export async function marketplaceRequest(method: string, path: string, actor: Ma
       },
       REQUEST_TIMEOUT_MS
     );
-    return { status: response.status, body: parsed };
+    return { status: response.status, body: parsed, next: response.headers?.get("x-next-cursor") ?? null };
   } catch {
     return { status: 0, body: null };
   }

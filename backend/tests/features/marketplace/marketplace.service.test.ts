@@ -98,7 +98,7 @@ describe("marketplaceRequest", () => {
     env.marketplaceUrl = "https://market.example/";
     fetchMock.mockResolvedValue(reply(201, { id: "L-1" }));
     const result = await service.marketplaceRequest("POST", "/api/publisher/listings", { userId: "u-1", role: "owner" }, { title: "T" });
-    assert.deepEqual(result, { status: 201, body: { id: "L-1" } });
+    assert.deepEqual(result, { status: 201, body: { id: "L-1" }, next: null }); // next: the marketplace's X-Next-Cursor, none here
     const [call] = calls();
     assert.equal(call.url, "https://market.example/api/publisher/listings");
     assert.equal(call.headers.Authorization, `Bearer ${KEY}`);

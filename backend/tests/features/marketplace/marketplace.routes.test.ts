@@ -39,8 +39,8 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-function reply(status: number, body: unknown = {}) {
-  return { ok: status < 400, status, text: async () => JSON.stringify(body) };
+function reply(status: number, body: unknown = {}, headers: Record<string, string> = {}) {
+  return { ok: status < 400, status, text: async () => JSON.stringify(body), headers: new Headers(headers) };
 }
 
 function lastCall() {
@@ -150,10 +150,23 @@ describe("publisher proxy", () => {
 });
 
 describe("catalogue proxy", () => {
-  it("forwards only the q, category and type filters", async () => {
+  // The marketplace pages its lists (stage review 2026-11-19): the proxy reads every page, so the in-app catalogue is
+  // the same as the website's however long it is.
+  it("reads every page of a list from the marketplace", async () => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(reply(200, [{ id: "L1" }, { id: "L2" }], { "X-Next-Cursor": "c1" }));
+    fetchMock.mockResolvedValueOnce(reply(200, [{ id: "L3" }]));
+    const res = await request(app).get("/api/marketplace/catalogue").query({ q: "soil" });
+    assert.deepEqual(res.body, [{ id: "L1" }, { id: "L2" }, { id: "L3" }]);
+    assert.equal(fetchMock.mock.calls[1][0], "https://market.example/api/catalogue?q=soil&limit=100&cursor=c1");
+  });
+
+  it("forwards only the catalogue's filters (keyword, category, type, country, format)", async () => {
     fetchMock.mockResolvedValue(reply(200, []));
     await request(app).get("/api/marketplace/catalogue").query({ q: "soil", category: "Energy consumption", type: "file", limit: "9" });
     assert.equal(lastCall().url, "https://market.example/api/catalogue?q=soil&category=Energy+consumption&type=file&limit=100");
+    await request(app).get("/api/marketplace/catalogue?country=DE&country=FR&format=CSV&secret=x");
+    assert.equal(lastCall().url, "https://market.example/api/catalogue?country=DE&country=FR&format=CSV&limit=100");
 
     await request(app).get("/api/marketplace/catalogue");
     assert.equal(lastCall().url, "https://market.example/api/catalogue?limit=100");

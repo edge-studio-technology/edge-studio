@@ -45,6 +45,27 @@ function relay(res: Response, result: MarketplaceResult) {
   return res.status(result.status).json(result.body);
 }
 
+/** A list from the marketplace, read whole: it answers in pages (at most 100), linked by X-Next-Cursor. Up to 50 pages. */
+function forwardList(actor: (req: Request) => MarketplaceActor, path: (req: Request) => string) {
+  return async (req: Request, res: Response) => {
+    if (!isMarketplaceConfigured()) {
+      return sendApiError(res, 503, systemError({ type: "not_configured", message: "The marketplace is not configured on this installation" }), { errorCode: "marketplace_not_configured" });
+    }
+    const base = path(req);
+    const all: unknown[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < 50; page++) {
+      const url: string = `${base}${base.includes("?") ? "&" : "?"}limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+      const result = await marketplaceRequest("GET", url, actor(req));
+      if (result.status !== 200 || !Array.isArray(result.body)) return relay(res, result);
+      all.push(...result.body);
+      cursor = result.next ?? null;
+      if (!cursor) break;
+    }
+    return relay(res, { status: 200, body: all });
+  };
+}
+
 function forward(actor: (req: Request) => MarketplaceActor, method: string, path: (req: Request) => string, body?: (req: Request) => unknown) {
   return async (req: Request, res: Response) => {
     if (!isMarketplaceConfigured()) {
@@ -62,11 +83,10 @@ marketplaceRouter.get("/status", (req, res) => {
   res.json({ configured, url: configured ? env.marketplaceUrl.replace(/\/+$/, "") : null, role: marketplaceRoleFor(req.user!.role) });
 });
 
-// The marketplace answers lists in pages (20 by default); these ask for its largest page, 100.
-// ponytail: one page; follow the marketplace's X-Next-Cursor here if an installation ever has more than 100.
-marketplaceRouter.get("/publisher/sources", forward(sessionActor, "GET", () => "/api/publisher/sources?limit=100"));
-marketplaceRouter.get("/publisher/listings", forward(sessionActor, "GET", () => "/api/publisher/listings?limit=100"));
-marketplaceRouter.get("/publisher/earnings", forward(sessionActor, "GET", () => "/api/publisher/earnings?limit=100"));
+// The marketplace answers lists in pages; these read them whole (forwardList).
+marketplaceRouter.get("/publisher/sources", forwardList(sessionActor, () => "/api/publisher/sources"));
+marketplaceRouter.get("/publisher/listings", forwardList(sessionActor, () => "/api/publisher/listings"));
+marketplaceRouter.get("/publisher/earnings", forwardList(sessionActor, () => "/api/publisher/earnings"));
 // The marketplace's rights-to-sell declaration (its X-05), shown before a listing is published.
 marketplaceRouter.get("/publisher/rights-declaration", forward(sessionActor, "GET", () => "/api/publisher/rights-declaration"));
 marketplaceRouter.post("/publisher/listings", requireRole("admin"), forward(sessionActor, "POST", () => "/api/publisher/listings", (req) => req.body));
@@ -83,13 +103,14 @@ marketplaceRouter.post(
 
 marketplaceRouter.get(
   "/catalogue",
-  forward(sessionActor, "GET", (req) => {
+  // Only the catalogue's own filters are passed on (several values of one filter allowed); every page is read.
+  forwardList(sessionActor, (req) => {
     const query = new URLSearchParams();
-    for (const key of ["q", "category", "type"]) {
-      if (typeof req.query[key] === "string" && req.query[key]) query.set(key, req.query[key] as string);
+    for (const key of ["q", "category", "type", "country", "format"]) {
+      for (const value of ([] as unknown[]).concat(req.query[key] ?? [])) if (typeof value === "string" && value) query.append(key, value);
     }
-    query.set("limit", "100"); // the marketplace's largest page
-    return `/api/catalogue?${query.toString()}`;
+    const search = query.toString();
+    return `/api/catalogue${search ? `?${search}` : ""}`;
   })
 );
 marketplaceRouter.get("/catalogue/:id", forward(sessionActor, "GET", (req) => `/api/catalogue/${id(req.params.id)}`));
