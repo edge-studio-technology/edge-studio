@@ -157,3 +157,49 @@ export function payoutStateText(state: string | null) {
     default: return "Not yet earned"; // captured, or no settlement yet
   }
 }
+
+/** A funded data quest as anyone may see it (#1380): its terms and progress, naming neither buyer nor publishers. */
+export type OpenQuest = {
+  id: string;
+  status: "draft" | "active" | "closed";
+  version: number;
+  title: string | null;
+  criteria: string | null;
+  schema: string | null;
+  licence: string | null;
+  rewardCents: number | null;
+  deadline: string | null;
+  progress: { total: number; unclaimed: number };
+};
+/** One of this installation's own requests for a quest slot, with the buyer's decision and where the slot stands. */
+export type QuestClaim = {
+  claimId: string;
+  questId: string;
+  questTitle: string | null;
+  questStatus: string;
+  questVersion: number;
+  deadline: string | null;
+  rewardCents: number | null;
+  sourceId: string;
+  status: "requested" | "accepted" | "declined";
+  slot: number | null;
+  slotState: string | null;
+  collectionStarted: boolean;
+};
+export const getOpenQuests = () => getJson<OpenQuest[]>("/api/marketplace/quests");
+export const getMyQuestClaims = () => getJson<QuestClaim[]>("/api/marketplace/quests/claims/mine");
+/** idempotencyKey: one key per intended request, reused on a retry, so a slot is never asked for twice. */
+export const requestQuestSlot = (questId: string, sourceId: string, idempotencyKey: string) =>
+  postJson<{ claimId: string }>(`/api/marketplace/quests/${encodeURIComponent(questId)}/claims`, { sourceId, idempotencyKey });
+export const startQuestCollection = (questId: string, slot: number) =>
+  postJson<{ slot: number }>(`/api/marketplace/quests/${encodeURIComponent(questId)}/slots/${slot}/collection`, {});
+export const disputeQuestSlot = (questId: string, slot: number, reason: string) =>
+  postJson<unknown>(`/api/marketplace/quests/${encodeURIComponent(questId)}/slots/${slot}/disputes`, { reason });
+
+/** An instant in UTC, the same for everyone: "2026-12-16 12:00 UTC" (a deadline may be stored with an offset). */
+export function utcText(iso: string | null) {
+  const date = iso ? new Date(iso) : null;
+  if (!date || Number.isNaN(date.getTime())) return "not set";
+  const z = date.toISOString();
+  return `${z.slice(0, 10)} ${z.slice(11, 16)} UTC`;
+}

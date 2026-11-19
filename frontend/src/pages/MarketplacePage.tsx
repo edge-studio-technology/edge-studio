@@ -10,12 +10,13 @@ import { describeLoadFailure } from "../lib/errors";
 import { MarketplaceCatalogue } from "../features/marketplace/MarketplaceCatalogue";
 import { PublisherEarnings } from "../features/marketplace/PublisherEarnings";
 import { PublisherListings } from "../features/marketplace/PublisherListings";
+import { PublisherQuests } from "../features/marketplace/PublisherQuests";
 import { getMarketplaceStatus, type MarketplaceStatus } from "../features/marketplace/marketplaceApi";
 
 export function MarketplacePage() {
   const [status, setStatus] = useState<MarketplaceStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"listings" | "earnings" | "catalogue">("listings");
+  const [tab, setTab] = useState<"listings" | "earnings" | "quests" | "catalogue">("listings");
 
   const load = useCallback(async () => {
     setError(null);
@@ -57,6 +58,7 @@ export function MarketplacePage() {
             options={[
               { value: "listings", label: "My listings" },
               { value: "earnings", label: "Earnings" }, // TC-FR12-19: the seller's sales and earnings
+              { value: "quests", label: "Quests" }, // #1380: funded data quests, the publisher's side
               { value: "catalogue", label: "Catalogue" },
             ]}
             onChange={setTab}
@@ -65,6 +67,8 @@ export function MarketplacePage() {
             <PublisherListings role={status.role} />
           ) : tab === "earnings" ? (
             <PublisherEarnings />
+          ) : tab === "quests" ? (
+            <PublisherQuests role={status.role} />
           ) : (
             <MarketplaceCatalogue marketplaceUrl={status.url} />
           )}

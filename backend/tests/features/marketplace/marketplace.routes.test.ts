@@ -279,3 +279,36 @@ describe("review: path safety and the delivery gate", () => {
     assert.equal((fetchMock.mock.calls.at(-1)![1] as RequestInit).redirect, "error");
   });
 });
+
+// Funded data quests (#1380): the publisher's side, through a fixed allowlist of quest calls.
+describe("quests proxy", () => {
+  it("reads open quests and the publisher's own slot requests whole, and one quest", async () => {
+    fetchMock.mockResolvedValue(reply(200, [{ id: "Q1" }]));
+    assert.deepEqual((await request(app).get("/api/marketplace/quests")).body, [{ id: "Q1" }]);
+    assert.match(lastCall().url, /^https:\/\/market\.example\/api\/quests\?limit=100$/);
+    await request(app).get("/api/marketplace/quests/claims/mine");
+    assert.match(lastCall().url, /^https:\/\/market\.example\/api\/quests\/claims\/mine\?limit=100$/);
+    fetchMock.mockResolvedValue(reply(200, { id: "Q1" }));
+    await request(app).get("/api/marketplace/quests/Q1");
+    assert.equal(lastCall().url, "https://market.example/api/quests/Q1");
+  });
+
+  it("forwards only the fields each action needs, as the signed-in user", async () => {
+    fetchMock.mockResolvedValue(reply(201, { claimId: "C1" }));
+    await request(app).post("/api/marketplace/quests/Q1/claims").send({ sourceId: "S1", idempotencyKey: "k1", sellerId: "someone-else" }).expect(201);
+    assert.equal(lastCall().url, "https://market.example/api/quests/Q1/claims");
+    assert.deepEqual(lastCall().body, { sourceId: "S1", idempotencyKey: "k1" });
+    fetchMock.mockResolvedValue(reply(200, { slot: 2 }));
+    await request(app).post("/api/marketplace/quests/Q1/slots/2/collection").send({ anything: 1 }).expect(200);
+    assert.equal(lastCall().url, "https://market.example/api/quests/Q1/slots/2/collection");
+    fetchMock.mockResolvedValue(reply(201, {}));
+    await request(app).post("/api/marketplace/quests/Q1/slots/2/disputes").send({ reason: "Readings repeat.", extra: true }).expect(201);
+    assert.deepEqual(lastCall().body, { reason: "Readings repeat." });
+  });
+
+  it("refuses a slot that is not a whole number, before anything is forwarded", async () => {
+    const response = await request(app).post("/api/marketplace/quests/Q1/slots/..%2F1/collection");
+    assert.equal(response.status, 400);
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+});

@@ -116,6 +116,28 @@ marketplaceRouter.get(
 );
 marketplaceRouter.get("/catalogue/:id", forward(sessionActor, "GET", (req) => `/api/catalogue/${id(req.params.id)}`));
 
+// Funded data quests (#1380): open quests, the publisher's own requests for slots, and the publisher's actions on a
+// slot (ask for one with a source, say collection has started, open a dispute). Only the fields each needs are sent.
+marketplaceRouter.param("slot", (_req, res, next, value: string) => (/^[1-9]\d{0,2}$/.test(value) ? next() : badRequest(res, "Invalid slot", { field: "slot" })));
+marketplaceRouter.get("/quests", forwardList(sessionActor, () => "/api/quests"));
+marketplaceRouter.get("/quests/claims/mine", forwardList(sessionActor, () => "/api/quests/claims/mine"));
+marketplaceRouter.get("/quests/:id", forward(sessionActor, "GET", (req) => `/api/quests/${id(req.params.id)}`));
+marketplaceRouter.post(
+  "/quests/:id/claims",
+  requireRole("admin"),
+  forward(sessionActor, "POST", (req) => `/api/quests/${id(req.params.id)}/claims`, (req) => ({ sourceId: req.body?.sourceId, idempotencyKey: req.body?.idempotencyKey }))
+);
+marketplaceRouter.post(
+  "/quests/:id/slots/:slot/collection",
+  requireRole("admin"),
+  forward(sessionActor, "POST", (req) => `/api/quests/${id(req.params.id)}/slots/${req.params.slot}/collection`)
+);
+marketplaceRouter.post(
+  "/quests/:id/slots/:slot/disputes",
+  requireRole("admin"),
+  forward(sessionActor, "POST", (req) => `/api/quests/${id(req.params.id)}/slots/${req.params.slot}/disputes`, (req) => ({ reason: req.body?.reason }))
+);
+
 // Token-authenticated like the device webhooks, so rate-limited like them.
 marketplaceDeliveryRouter.use(webhookRateLimiter);
 marketplaceDeliveryRouter.use((req, res, next) => (isDeliveryAuthorized(req.headers.authorization) ? next() : unauthorized(res)));
