@@ -55,7 +55,8 @@ const EARNINGS = {
       payoutTxpowid: TX,
     },
   ],
-  totals: { grossCents: 14_000, refundedCents: 2_500, commissionCents: 1_725, netCents: 9_775 },
+  // Deliberately not the sums of the rows above: the screen must show the marketplace's totals, never its own sums.
+  totals: { grossCents: 50_000, refundedCents: 1_234, commissionCents: 777, netCents: 4_321 },
   payoutCredit: "0.0085",
 };
 
@@ -103,16 +104,16 @@ describe("PublisherEarnings", () => {
     // The payout transaction id is shown in full (never shortened), so it can be checked on chain.
     expect(within(rows[0]).getByText(TX)).toBeInTheDocument();
     expect(screen.getByText("Gross sales", { selector: "dt" }).nextSibling?.textContent).toBe(
-      "$140.00",
+      "$500.00",
     );
     expect(screen.getByText("Refunded", { selector: "dt" }).nextSibling?.textContent).toBe(
-      "$25.00",
+      "$12.34",
     );
     expect(screen.getByText("Commission", { selector: "dt" }).nextSibling?.textContent).toBe(
-      "$17.25",
+      "$7.77",
     );
     expect(screen.getByText("Net earnings", { selector: "dt" }).nextSibling?.textContent).toBe(
-      "$97.75",
+      "$43.21",
     );
     expect(screen.getByText(/0\.0085/)).toBeInTheDocument(); // the remainder added to the next payout
   });

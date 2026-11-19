@@ -86,7 +86,8 @@ marketplaceRouter.get("/status", (req, res) => {
 // The marketplace answers lists in pages; these read them whole (forwardList).
 marketplaceRouter.get("/publisher/sources", forwardList(sessionActor, () => "/api/publisher/sources"));
 marketplaceRouter.get("/publisher/listings", forwardList(sessionActor, () => "/api/publisher/listings"));
-marketplaceRouter.get("/publisher/earnings", forwardList(sessionActor, () => "/api/publisher/earnings"));
+// The earnings answer is one document (transactions, totals, payout credit), not a paged list.
+marketplaceRouter.get("/publisher/earnings", forward(sessionActor, "GET", () => "/api/publisher/earnings"));
 // The marketplace's rights-to-sell declaration (its X-05), shown before a listing is published.
 marketplaceRouter.get("/publisher/rights-declaration", forward(sessionActor, "GET", () => "/api/publisher/rights-declaration"));
 marketplaceRouter.post("/publisher/listings", requireRole("admin"), forward(sessionActor, "POST", () => "/api/publisher/listings", (req) => req.body));
