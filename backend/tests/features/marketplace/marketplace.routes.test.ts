@@ -361,6 +361,22 @@ describe("quest delivery", () => {
     fs.rmSync(entry.path, { force: true }); // this test's file
   });
 
+  it("keeps the file when the marketplace's answer was lost (it may have saved the submission)", async () => {
+    nodeAndMarket();
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes("maxsign")) return reply(200, { status: true, response: { signature: "0x5160" } });
+      if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
+      throw new TypeError("fetch failed"); // the submission's answer never arrives
+    });
+    const body = '{"device_id":"lost-answer"}\n';
+    const response = await request(app).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(body), "lost.ndjson");
+    assert.equal(response.status, 503);
+    const folder = (await import("node:path")).join(env.dataDir, "marketplace-deliveries");
+    const kept = fs.readdirSync(folder).filter((f) => f.includes(crypto.createHash("sha3-256").update(body).digest("hex")));
+    assert.equal(kept.length, 1);
+    kept.forEach((f) => fs.rmSync(`${folder}/${f}`, { force: true }));
+  });
+
   it("counts device ids that are also JavaScript object names, and refuses more than 1,000 devices before signing", async () => {
     nodeAndMarket();
     const odd = '{"device_id":"constructor"}\n{"device_id":"constructor"}\n{"device_id":"__proto__"}\n';
@@ -438,5 +454,33 @@ describe("stream feed for the delivery service", () => {
     assert.equal(next.body.cursor, b);
     assert.deepEqual((await feed(`?after=${b}`)).body.reads, []);
     assert.equal((await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`)).status, 401); // the delivery secret is needed
+  });
+});
+
+describe("stream feed review (2026-11-19)", () => {
+  const auth = { Authorization: `Bearer ${SECRET}` };
+  it("an unknown cursor (e.g. its read was deleted) starts from now, never replays the history", async () => {
+    const { createDataSource } = await import("../../../src/features/data-sources/dataSources.repository.js");
+    const { createDataSourceRead } = await import("../../../src/features/data-reads/dataReads.repository.js");
+    const source = createDataSource({ name: "Quiet", type: "webhook", config: {} }) as { id: string };
+    const old = createDataSourceRead({ dataSourceId: source.id, sourceName: "x", sourceUrl: "x", triggerType: "webhook", status: "success", hash: "h", preview: { t: 0 } }).id;
+    const r = await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads?after=gone-read-id`).set(auth);
+    assert.deepEqual(r.body, { reads: [], cursor: old });
+  });
+
+  it("output targets and cameras are not streams", async () => {
+    const { createDataSource } = await import("../../../src/features/data-sources/dataSources.repository.js");
+    for (const type of ["mqtt-output", "pi-camera"]) {
+      const source = createDataSource({ name: type, type, config: {} }) as { id: string };
+      assert.equal((await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`).set(auth)).status, 404, type);
+    }
+  });
+
+  it("stream reads have their own rate limit, so polling never starves heartbeats", async () => {
+    const { createDataSource } = await import("../../../src/features/data-sources/dataSources.repository.js");
+    const source = createDataSource({ name: "Busy", type: "webhook", config: {} }) as { id: string };
+    for (let i = 0; i < 61; i++) await request(app).get(`/api/marketplace/delivery/sources/${source.id}/reads`).set(auth).expect(200);
+    fetchMock.mockResolvedValue(reply(204, {}));
+    assert.notEqual((await request(app).post(`/api/marketplace/delivery/sources/${source.id}/heartbeat`).set(auth).send({})).status, 429);
   });
 });

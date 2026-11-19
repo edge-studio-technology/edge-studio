@@ -96,7 +96,10 @@ export function linkDataSourceReadProof(id: string, proofId: string) {
  * "" = from the first read; an id = after that read. Failed reads move the cursor but are not readings.
  */
 export function listSourceReadingsAfter(dataSourceId: string, after: string | undefined, limit = 500) {
-  if (after === undefined) {
+  // An unknown cursor (its read was removed by retention, or never existed) also starts from now: replaying the
+  // source's whole remaining history as new readings would be wrong (review 2026-11-19).
+  const known = after !== undefined && (after === "" || db.prepare("SELECT 1 FROM data_source_reads WHERE id = ? AND data_source_id = ?").get(after, dataSourceId));
+  if (!known) {
     const newest = db.prepare("SELECT id FROM data_source_reads WHERE data_source_id = ? ORDER BY rowid DESC LIMIT 1").get(dataSourceId) as { id: string } | undefined;
     return { reads: [], cursor: newest?.id ?? "" };
   }

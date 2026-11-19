@@ -169,7 +169,9 @@ export async function submitQuestDelivery(
   );
   const id = (result.body as { id?: unknown } | null)?.id;
   if (result.status !== 201 || typeof id !== "string") {
-    fs.rmSync(file, { force: true }); // only this request's own file
+    // Only this request's own file, and only when the marketplace answered that it refused the submission. With no
+    // answer (status 0) or a server error it may have saved it: the file is kept for that delivery (review 2026-11-19).
+    if (result.status >= 400 && result.status < 500) fs.rmSync(file, { force: true });
     const code = (result.body as { error?: unknown } | null)?.error;
     if (result.status === 422 && typeof code === "string" && code.includes("signature"))
       return { status: 422, error: "The marketplace did not accept this node's signature: this node is not the attesting node of the source's proof. Deliver from the Edge Studio that attests the source." };

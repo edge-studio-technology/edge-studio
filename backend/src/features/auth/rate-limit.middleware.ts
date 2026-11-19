@@ -43,3 +43,6 @@ export const automationWriteRateLimiter = trafficRateLimiter(AUTOMATION_WRITE_RA
 
 export const integritasStampRateLimiter = trafficRateLimiter(INTEGRITAS_STAMP_RATE_LIMIT_MAX);
 export const fileOperationRateLimiter = trafficRateLimiter(FILE_OPERATION_RATE_LIMIT_MAX);
+/** The marketplace delivery service's stream polls (one per source every 10 s), kept apart from its heartbeats. */
+export const DELIVERY_READ_RATE_LIMIT_MAX = 600;
+export const deliveryReadRateLimiter = trafficRateLimiter(DELIVERY_READ_RATE_LIMIT_MAX);

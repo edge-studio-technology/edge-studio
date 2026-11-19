@@ -4,7 +4,7 @@ import { badRequest, sendApiError, unauthorized } from "../../shared/api-error.j
 import { appError, systemError } from "../../shared/structured-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import fs from "node:fs";
-import { fileOperationRateLimiter, webhookRateLimiter } from "../auth/rate-limit.middleware.js";
+import { deliveryReadRateLimiter, fileOperationRateLimiter, webhookRateLimiter } from "../auth/rate-limit.middleware.js";
 import { upload } from "../integritas/upload.middleware.js";
 import { submitQuestDelivery } from "./questDelivery.service.js";
 import { listSourceReadingsAfter } from "../data-reads/dataReads.repository.js";
@@ -169,13 +169,16 @@ marketplaceRouter.post(
 );
 
 // Token-authenticated like the device webhooks, so rate-limited like them.
-marketplaceDeliveryRouter.use(webhookRateLimiter);
+// Stream reads (GET) are polled often and limited on their own, so they can never use up the heartbeats' limit.
+marketplaceDeliveryRouter.use((req, res, next) => (req.method === "GET" ? deliveryReadRateLimiter(req, res, next) : webhookRateLimiter(req, res, next)));
 marketplaceDeliveryRouter.use((req, res, next) => (isDeliveryAuthorized(req.headers.authorization) ? next() : unauthorized(res)));
 
 // FR-17 live streams: the delivery service polls a source's new readings (in recorded order) and delivers them to
 // subscribed buyers in batches. Only a source of this installation; the delivery secret is required (above).
 marketplaceDeliveryRouter.get("/sources/:id/reads", (req, res) => {
-  if (!getDataSource(req.params.id)) return res.status(404).json({ error: "not_found" });
+  const source = getDataSource(req.params.id);
+  // Output targets are not data, and a camera's reading is only its local file's metadata: neither is a stream.
+  if (!source || source.type.endsWith("-output") || source.type === "pi-camera") return res.status(404).json({ error: "not_found" });
   const after = typeof req.query.after === "string" ? req.query.after : undefined;
   return res.json(listSourceReadingsAfter(req.params.id, after));
 });
