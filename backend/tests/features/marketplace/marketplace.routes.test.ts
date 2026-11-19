@@ -96,7 +96,7 @@ describe("publisher proxy", () => {
     const response = await request(app).get("/api/marketplace/publisher/sources");
     assert.deepEqual(response.body, [{ id: "SRC-1", selectable: true }]);
     const call = lastCall();
-    assert.equal(call.url, "https://market.example/api/publisher/sources");
+    assert.equal(call.url, "https://market.example/api/publisher/sources?limit=100"); // the marketplace pages lists; its largest page
     assert.equal(call.headers.Authorization, `Bearer ${KEY}`);
     assert.equal(call.headers["X-Edge-Studio-User"], "admin-1");
     assert.equal(call.headers["X-Edge-Studio-Role"], "owner");
@@ -153,10 +153,10 @@ describe("catalogue proxy", () => {
   it("forwards only the q, category and type filters", async () => {
     fetchMock.mockResolvedValue(reply(200, []));
     await request(app).get("/api/marketplace/catalogue").query({ q: "soil", category: "Energy consumption", type: "file", limit: "9" });
-    assert.equal(lastCall().url, "https://market.example/api/catalogue?q=soil&category=Energy+consumption&type=file");
+    assert.equal(lastCall().url, "https://market.example/api/catalogue?q=soil&category=Energy+consumption&type=file&limit=100");
 
     await request(app).get("/api/marketplace/catalogue");
-    assert.equal(lastCall().url, "https://market.example/api/catalogue");
+    assert.equal(lastCall().url, "https://market.example/api/catalogue?limit=100");
 
     fetchMock.mockResolvedValue(reply(200, { id: "L1", live: { delivery: "online" } }));
     const detail = await request(app).get("/api/marketplace/catalogue/L1");

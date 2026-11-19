@@ -62,9 +62,11 @@ marketplaceRouter.get("/status", (req, res) => {
   res.json({ configured, url: configured ? env.marketplaceUrl.replace(/\/+$/, "") : null, role: marketplaceRoleFor(req.user!.role) });
 });
 
-marketplaceRouter.get("/publisher/sources", forward(sessionActor, "GET", () => "/api/publisher/sources"));
-marketplaceRouter.get("/publisher/listings", forward(sessionActor, "GET", () => "/api/publisher/listings"));
-marketplaceRouter.get("/publisher/earnings", forward(sessionActor, "GET", () => "/api/publisher/earnings"));
+// The marketplace answers lists in pages (20 by default); these ask for its largest page, 100.
+// ponytail: one page; follow the marketplace's X-Next-Cursor here if an installation ever has more than 100.
+marketplaceRouter.get("/publisher/sources", forward(sessionActor, "GET", () => "/api/publisher/sources?limit=100"));
+marketplaceRouter.get("/publisher/listings", forward(sessionActor, "GET", () => "/api/publisher/listings?limit=100"));
+marketplaceRouter.get("/publisher/earnings", forward(sessionActor, "GET", () => "/api/publisher/earnings?limit=100"));
 // The marketplace's rights-to-sell declaration (its X-05), shown before a listing is published.
 marketplaceRouter.get("/publisher/rights-declaration", forward(sessionActor, "GET", () => "/api/publisher/rights-declaration"));
 marketplaceRouter.post("/publisher/listings", requireRole("admin"), forward(sessionActor, "POST", () => "/api/publisher/listings", (req) => req.body));
@@ -86,8 +88,8 @@ marketplaceRouter.get(
     for (const key of ["q", "category", "type"]) {
       if (typeof req.query[key] === "string" && req.query[key]) query.set(key, req.query[key] as string);
     }
-    const search = query.toString();
-    return `/api/catalogue${search ? `?${search}` : ""}`;
+    query.set("limit", "100"); // the marketplace's largest page
+    return `/api/catalogue?${query.toString()}`;
   })
 );
 marketplaceRouter.get("/catalogue/:id", forward(sessionActor, "GET", (req) => `/api/catalogue/${id(req.params.id)}`));
