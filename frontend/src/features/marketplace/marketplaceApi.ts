@@ -106,8 +106,13 @@ export const getMarketplaceStatus = () => getJson<MarketplaceStatus>("/api/marke
 export const getPublisherSources = () => getJson<PublisherSource[]>("/api/marketplace/publisher/sources");
 export const getPublisherListings = () => getJson<Listing[]>("/api/marketplace/publisher/listings");
 export const createListing = (draft: ListingDraft) => postJson<Listing>("/api/marketplace/publisher/listings", listingPayload(draft));
-export const transitionListing = (id: string, to: "published" | "paused" | "unpublished") =>
-  postJson<Listing>(`/api/marketplace/publisher/listings/${encodeURIComponent(id)}/transitions`, { to });
+/** acceptDeclaration: the version of the rights declaration the user accepted; the marketplace requires it to publish. */
+export const transitionListing = (id: string, to: "published" | "paused" | "unpublished", acceptDeclaration?: number) =>
+  postJson<Listing>(`/api/marketplace/publisher/listings/${encodeURIComponent(id)}/transitions`, { to, ...(acceptDeclaration !== undefined && { acceptDeclaration }) });
+
+/** The marketplace's rights-to-sell declaration: its wording and version, accepted before each publish. */
+export type RightsDeclaration = { version: number; text: string };
+export const getRightsDeclaration = () => getJson<RightsDeclaration>("/api/marketplace/publisher/rights-declaration");
 
 export function searchCatalogue(filter: { q: string; category: string; type: string }) {
   const query = new URLSearchParams(Object.entries(filter).filter(([, value]) => value)).toString();

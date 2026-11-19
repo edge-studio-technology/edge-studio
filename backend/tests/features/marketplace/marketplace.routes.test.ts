@@ -102,7 +102,7 @@ describe("publisher proxy", () => {
     assert.equal(call.headers["X-Edge-Studio-Role"], "owner");
   });
 
-  it("forwards listing create, edit and transitions, sending only `to` for a transition", async () => {
+  it("forwards listing create, edit and transitions, sending only `to` (and the accepted declaration version) for a transition", async () => {
     fetchMock.mockResolvedValue(reply(201, { id: "L 1" }));
     const created = await request(app).post("/api/marketplace/publisher/listings").send({ type: "file", billing: "one_off", title: "T" });
     assert.equal(created.status, 201);
@@ -116,6 +116,16 @@ describe("publisher proxy", () => {
     await request(app).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", payoutWallet: "MxOTHER" });
     assert.equal(lastCall().url, "https://market.example/api/publisher/listings/L%201/transitions");
     assert.deepEqual(lastCall().body, { to: "published" });
+    // X-05: the version of the rights declaration the user accepted travels with a publish, and nothing else.
+    await request(app).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", acceptDeclaration: 2, payoutWallet: "MxOTHER" });
+    assert.deepEqual(lastCall().body, { to: "published", acceptDeclaration: 2 });
+    await request(app).post("/api/marketplace/publisher/listings/L%201/transitions").send({ to: "published", acceptDeclaration: "2" });
+    assert.deepEqual(lastCall().body, { to: "published" });
+
+    fetchMock.mockResolvedValue(reply(200, { version: 2, text: "T" }));
+    const declaration = await request(app).get("/api/marketplace/publisher/rights-declaration");
+    assert.deepEqual(declaration.body, { version: 2, text: "T" });
+    assert.equal(lastCall().url, "https://market.example/api/publisher/rights-declaration");
   });
 
   it("passes marketplace 4xx errors through with a readable message and a marketplace errorCode", async () => {

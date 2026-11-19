@@ -65,12 +65,18 @@ marketplaceRouter.get("/status", (req, res) => {
 marketplaceRouter.get("/publisher/sources", forward(sessionActor, "GET", () => "/api/publisher/sources"));
 marketplaceRouter.get("/publisher/listings", forward(sessionActor, "GET", () => "/api/publisher/listings"));
 marketplaceRouter.get("/publisher/earnings", forward(sessionActor, "GET", () => "/api/publisher/earnings"));
+// The marketplace's rights-to-sell declaration (its X-05), shown before a listing is published.
+marketplaceRouter.get("/publisher/rights-declaration", forward(sessionActor, "GET", () => "/api/publisher/rights-declaration"));
 marketplaceRouter.post("/publisher/listings", requireRole("admin"), forward(sessionActor, "POST", () => "/api/publisher/listings", (req) => req.body));
 marketplaceRouter.patch("/publisher/listings/:id", requireRole("admin"), forward(sessionActor, "PATCH", (req) => `/api/publisher/listings/${id(req.params.id)}`, (req) => req.body));
 marketplaceRouter.post(
   "/publisher/listings/:id/transitions",
   requireRole("admin"),
-  forward(sessionActor, "POST", (req) => `/api/publisher/listings/${id(req.params.id)}/transitions`, (req) => ({ to: req.body?.to }))
+  // Only the target state, and for a publish the version of the rights declaration the user accepted (a whole number).
+  forward(sessionActor, "POST", (req) => `/api/publisher/listings/${id(req.params.id)}/transitions`, (req) => ({
+    to: req.body?.to,
+    ...(Number.isInteger(req.body?.acceptDeclaration) && { acceptDeclaration: req.body.acceptDeclaration }),
+  }))
 );
 
 marketplaceRouter.get(

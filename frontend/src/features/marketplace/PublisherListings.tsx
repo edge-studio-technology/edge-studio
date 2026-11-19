@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Store } from "lucide-react";
 import { Button } from "../../components/ui/Button";
+import { CheckboxField } from "../../components/ui/CheckboxField";
+import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorContentState } from "../../components/patterns/ErrorContentState";
@@ -13,6 +15,7 @@ import {
   canPublish,
   getPublisherListings,
   getPublisherSources,
+  getRightsDeclaration,
   nextTransitions,
   priceText,
   PRODUCT_TYPES,
@@ -20,6 +23,7 @@ import {
   type Listing,
   type MarketplaceRole,
   type PublisherSource,
+  type RightsDeclaration,
 } from "./marketplaceApi";
 
 const ACTION_LABEL = { published: "Publish", paused: "Pause", unpublished: "Unpublish" } as const;
@@ -53,10 +57,20 @@ export function PublisherListings({ role }: { role: MarketplaceRole }) {
     void load();
   }, [load]);
 
-  async function transition(listing: Listing, to: "published" | "paused" | "unpublished") {
+  // Publishing first shows the marketplace's rights declaration; it is sent only once the user has accepted it.
+  const [declaring, setDeclaring] = useState<{ listing: Listing; declaration: RightsDeclaration; accepted: boolean } | null>(null);
+  async function startPublish(listing: Listing) {
+    try {
+      setDeclaring({ listing, declaration: await getRightsDeclaration(), accepted: false });
+    } catch (failure) {
+      showToast({ tone: "error", title: "Publish failed", message: failure instanceof Error ? failure.message : undefined });
+    }
+  }
+
+  async function transition(listing: Listing, to: "published" | "paused" | "unpublished", acceptDeclaration?: number) {
     setBusyId(listing.id);
     try {
-      await transitionListing(listing.id, to);
+      await transitionListing(listing.id, to, acceptDeclaration);
       await load();
     } catch (failure) {
       showToast({ tone: "error", title: `${ACTION_LABEL[to]} failed`, message: failure instanceof Error ? failure.message : undefined });
@@ -109,6 +123,37 @@ export function PublisherListings({ role }: { role: MarketplaceRole }) {
           New listing
         </Button>
       ) : null}
+      {declaring ? (
+        <Modal
+          title="Rights declaration"
+          description={`Publishing "${declaring.listing.title || "Untitled draft"}". The marketplace records your acceptance with this version of the listing.`}
+          onClose={() => setDeclaring(null)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setDeclaring(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={!declaring.accepted}
+                onClick={() => {
+                  const { listing, declaration } = declaring;
+                  setDeclaring(null);
+                  void transition(listing, "published", declaration.version);
+                }}
+              >
+                Publish
+              </Button>
+            </>
+          }
+        >
+          <p className="type-body text-text-primary m-0 whitespace-pre-wrap">{declaring.declaration.text}</p>
+          <CheckboxField
+            label="I accept this declaration"
+            checked={declaring.accepted}
+            onChange={(event) => setDeclaring({ ...declaring, accepted: event.target.checked })}
+          />
+        </Modal>
+      ) : null}
       <ul className="gap-detail-next m-0 grid list-none p-0">
         {data.listings.map((listing) => (
           <li key={listing.id} className="border-stroke-secondary rounded-soft p-detail-close gap-detail-next flex flex-wrap items-center border">
@@ -121,7 +166,7 @@ export function PublisherListings({ role }: { role: MarketplaceRole }) {
             <Pill tone={listing.state === "published" ? "good" : listing.state === "suspended" ? "error" : "neutral"}>{listing.state}</Pill>
             {mayPublish
               ? nextTransitions(listing.state).map((to) => (
-                  <Button key={to} size="sm" variant="secondary" disabled={busyId === listing.id} onClick={() => void transition(listing, to)}>
+                  <Button key={to} size="sm" variant="secondary" disabled={busyId === listing.id} onClick={() => void (to === "published" ? startPublish(listing) : transition(listing, to))}>
                     {ACTION_LABEL[to]}
                   </Button>
                 ))

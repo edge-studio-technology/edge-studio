@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   getPublisherSources: vi.fn(),
   transitionListing: vi.fn(),
   createListing: vi.fn(),
+  getRightsDeclaration: vi.fn(),
 }));
 vi.mock("../../../src/features/marketplace/marketplaceApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/features/marketplace/marketplaceApi")>()),
@@ -30,7 +31,16 @@ function renderListings(role: MarketplaceRole = "owner") {
 beforeEach(() => {
   Object.values(api).forEach((fn) => fn.mockReset());
   api.getPublisherSources.mockResolvedValue([{ id: "SRC-1", name: "Greenhouse", attestations: 2, selectable: true }]);
+  api.getRightsDeclaration.mockResolvedValue({ version: 2, text: "I have the right to sell this data." });
 });
+
+// Publishing asks for the marketplace's rights declaration first (X-05 in the marketplace repository).
+async function publishWithDeclaration(row: HTMLElement) {
+  await userEvent.click(within(row).getByRole("button", { name: "Publish" }));
+  const dialog = await screen.findByRole("dialog", { name: "Rights declaration" });
+  await userEvent.click(within(dialog).getByRole("checkbox", { name: /I accept this declaration/ }));
+  await userEvent.click(within(dialog).getByRole("button", { name: "Publish" }));
+}
 
 describe("PublisherListings", () => {
   it("TC-FR01-02 Empty state for a publisher with no listings explains how to create the first listing and opens the wizard", async () => {
@@ -68,16 +78,31 @@ describe("PublisherListings", () => {
     expect(within(liveRow).getAllByRole("button").map((b) => b.textContent)).toEqual(["Pause", "Unpublish"]);
     expect(within(liveRow).getByText(/Live Stream · .* · \$5\.00 per month/)).toBeInTheDocument();
 
-    await userEvent.click(within(draftRow).getByRole("button", { name: "Publish" }));
-    expect(api.transitionListing).toHaveBeenCalledWith("L-1", "published");
+    await publishWithDeclaration(draftRow);
+    expect(api.transitionListing).toHaveBeenCalledWith("L-1", "published", 2);
     expect(api.getPublisherListings).toHaveBeenCalledTimes(2);
+  });
+
+  it("X-05 publishing shows the rights declaration; nothing is sent until it is accepted; pausing needs none", async () => {
+    api.getPublisherListings.mockResolvedValue([draft, live]);
+    api.transitionListing.mockResolvedValue({ ...draft, state: "published" });
+    renderListings("owner");
+    const draftRow = (await screen.findByText("Soil moisture")).closest("li")!;
+    await userEvent.click(within(draftRow).getByRole("button", { name: "Publish" }));
+    const dialog = await screen.findByRole("dialog", { name: "Rights declaration" });
+    expect(within(dialog).getByText("I have the right to sell this data.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Publish" })).toBeDisabled();
+    expect(api.transitionListing).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await userEvent.click(within(screen.getByText("Live climate").closest("li")!).getByRole("button", { name: "Pause" }));
+    expect(api.transitionListing).toHaveBeenCalledWith("L-2", "paused", undefined);
   });
 
   it("shows a refused transition as a toast", async () => {
     api.getPublisherListings.mockResolvedValue([draft]);
     api.transitionListing.mockRejectedValue(new Error("This source is not Integritas-verified."));
     renderListings();
-    await userEvent.click(await screen.findByRole("button", { name: "Publish" }));
+    await publishWithDeclaration((await screen.findByText("Soil moisture")).closest("li")!);
     expect(await screen.findByText("This source is not Integritas-verified.")).toBeInTheDocument();
   });
 
