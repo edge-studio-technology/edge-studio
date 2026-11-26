@@ -419,6 +419,7 @@ export function ValidationIssueRow({
   issue: AutomationValidationResult["errors"][number];
   count?: number;
 }) {
+  const blockTitle = issue.blockType ? blockHelp(issue.blockType as AutomationBlockType)?.title : undefined;
   return (
     <div className="gap-detail-next border-stroke-secondary py-detail-close grid grid-cols-[5.5rem_minmax(0,1fr)] items-start border-b last:border-b-0">
       <Pill tone={issue.level === "error" ? "error" : "warn"} indicator>
@@ -426,7 +427,7 @@ export function ValidationIssueRow({
       </Pill>
       <p className={cx(issue.level === "error" ? errorText : mutedText, "m-0 min-w-0")}>
         {issue.message}
-        {issue.blockType ? ` (${issue.blockType})` : ""}
+        {blockTitle ? ` (${blockTitle})` : ""}
         {count > 1 ? ` · ${count} blocks` : ""}
       </p>
     </div>

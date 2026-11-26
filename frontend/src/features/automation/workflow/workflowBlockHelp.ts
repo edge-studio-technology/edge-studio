@@ -432,21 +432,21 @@ export const workflowBlockHelp = {
     title: "Control device",
     shortTitle: "Control device",
     shortDescription: "Send a command to a configured output target.",
-    tooltip: "Controls a GPIO, HTTP, or MQTT output target from the workflow.",
+    tooltip: "Controls a GPIO, display, HTTP, or MQTT output target from the workflow.",
     whatItDoes: "Sends the configured action or payload to an output device.",
     whenToUse:
-      "Use it to pulse LEDs, publish MQTT messages, or send HTTP requests from a workflow.",
+      "Use it to update a display, pulse LEDs, publish MQTT messages, or send HTTP requests.",
     fields: [
       {
         label: "Output target",
-        description: "The configured GPIO, HTTP, or MQTT output device this block controls.",
+        description: "The configured GPIO, display, HTTP, or MQTT output device this block controls.",
         required: true,
         example: "GPIO LED",
       },
       {
         label: "Action",
         description:
-          "What to do with the target. GPIO targets pulse; HTTP targets send requests; MQTT targets publish messages.",
+          "What to do with the target. Displays show text, GPIO targets pulse, HTTP targets send requests, and MQTT targets publish messages.",
         required: true,
         example: "Pulse",
       },
@@ -455,6 +455,12 @@ export const workflowBlockHelp = {
         description: "How long a GPIO output should stay active before turning off.",
         shownWhen: "Output target is GPIO",
         example: "500",
+      },
+      {
+        label: "Display content",
+        description: "Enter text and an optional title. Text supports line breaks, and both fields support workflow variables.",
+        shownWhen: "Output target is a display",
+        example: "Last read: {{readAt}}",
       },
       {
         label: "Body mode",

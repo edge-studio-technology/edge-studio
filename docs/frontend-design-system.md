@@ -291,6 +291,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Prefer `InputField` for labeled text fields (login, settings, device forms).
 - Prefer `SelectField` for labeled single-choice dropdowns with optional description / error.
 - Prefer `TextareaField` when multiline text needs a label, description, or inline error.
+- Set `descriptionBelow` on `TextareaField` or `InputField` to put help immediately below the input.
 - Prefer `CheckboxField` for labeled boolean / tri-state choices with optional helper text.
 - Prefer `RadioField` for mutually exclusive options in a named group with optional helper text (no current call sites).
 - Prefer `SwitchField` for labeled on/off settings with optional helper text.

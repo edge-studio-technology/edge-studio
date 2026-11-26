@@ -95,7 +95,9 @@ const blockSummaryFormatters = {
       { label: "Action", value: action },
       ...(block.config.action === "pulse"
         ? [{ label: "Duration", value: formatDurationMs(Number(block.config.durationMs ?? 500)) }]
-        : [{ label: "Payload", value: bodyModeLabel(block.config.bodyMode) }]),
+        : block.config.action === "display_text"
+          ? []
+          : [{ label: "Payload", value: bodyModeLabel(block.config.bodyMode) }]),
     ]);
   },
   send_transaction: (block, context) => {

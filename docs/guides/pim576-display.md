@@ -71,18 +71,11 @@ The device guide creates a **disabled** starter workflow with no other sensors:
 
 1. **Manual run**.
 2. **Set variable**: name `message`, source **Custom JSON**, value `"Hello from Edge Studio"` (including the JSON quotation marks).
-3. **Control device**: select the LCD; **Display JSON**:
-
-```json
-{
-  "title": "Edge Studio",
-  "text": "{{message}}"
-}
-```
+3. In **Control device**, select the LCD. Under **Display content**, enter `Edge Studio` in **Title (optional)** and `{{message}}` in **Text**.
 
 Review the workflow and run manually. Change the custom variable, save and run again; confirm the screen changes and the output result appears in run/block history. The guide's existing action handling avoids duplicate starter creation. Use a Schedule start only when deliberate repeating updates are wanted; there is no background refresh loop or new block type.
 
-`text` must be a nonempty string of up to 512 characters. `title` is optional, a single line of up to 32 characters. These validation limits do not promise the content fits the panel. Text wraps within 216 pixels; an over-wide title or too many wrapped lines is rejected before a write, preserving the previous frame. The fixed Pillow font determines supported glyphs. Use short plain text for the first test. A variable that resolves to a number/object instead of a string is rejected; set a string variable or build a string around the value.
+**Text** is required and can contain up to 512 characters. Press Enter for a new line or twice for a blank line. **Title (optional)** accepts a single line of up to 32 characters. Both fields accept plain text and workflow variables such as `{{message}}`. The limits apply to the text shown when the workflow runs, including expanded variable values. Text wraps within 216 pixels. An over-wide title or too many wrapped lines is rejected before a write, preserving the previous frame. The fixed Pillow font determines supported glyphs. Use short plain text for the first test.
 
 ## Failure and privacy behaviour
 

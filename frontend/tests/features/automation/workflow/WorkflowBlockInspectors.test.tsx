@@ -273,6 +273,38 @@ describe("DraftBlockInspector show_preview", () => {
 });
 
 describe("DraftBlockInspector control_output", () => {
+  it("edits saved LCD content as multiline text with inline help", () => {
+    const onChange = vi.fn();
+    const lcd = source({ id: "lcd", type: "spi-display", config: { model: "pim576" } });
+    renderInspector(
+      draftBlock("control_output", {
+        targetId: "lcd", action: "display_text", bodyMode: "custom",
+        bodyTemplateText: '{"title":"Last read","text":"{{readAt}}"}',
+      }),
+      { onChange, sources: [lcd] },
+    );
+    expect(screen.getByRole("group", { name: "Display content" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Title (optional)" })).toHaveValue("Last read");
+    const field = screen.getByRole("textbox", { name: "Text" });
+    expect(field).toHaveValue("{{readAt}}");
+    expect(field).toHaveAccessibleDescription(/Press Enter for a new line/);
+    const text = "Latest reading\n\n{{readAt}}";
+    fireEvent.change(field, { target: { value: text } });
+    expect(onChange).toHaveBeenCalledWith({
+      targetId: "lcd", action: "display_text", bodyMode: "custom",
+      bodyTemplateText: JSON.stringify({ title: "Last read", text }),
+    });
+  });
+
+  it("shows missing LCD text as a field error without displaying a fallback value", () => {
+    renderInspector(
+      draftBlock("control_output", { targetId: "lcd", action: "display_text", bodyMode: "custom" }),
+      { sources: [source({ id: "lcd", type: "spi-display" })] },
+    );
+    expect(screen.getByRole("textbox", { name: "Text" })).toHaveValue("");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter the text to display.");
+  });
+
   it("shows a pulse duration and wiring hint for a GPIO output target", async () => {
     const onChange = vi.fn();
     const gpioOut = source({ id: "led1", type: "gpio-output", config: { activeState: "high" } });

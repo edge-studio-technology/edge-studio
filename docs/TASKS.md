@@ -78,6 +78,8 @@
 
 ## Done
 
+- [x] Simplified LCD workflow setup with an optional title, multiline display text, inline help and field-specific validation. Existing saved workflows open in the new editor.
+
 - [x] Implemented and physically verified PIM576 output through a narrow opt-in SPI helper and the existing Control device block, with setup/editing, custom-variable workflow, rotations, repeated/concurrent writes, disable/re-enable and keep-data uninstall/reinstall on Pi 4/Debian 13/aarch64. Exact-head Linux CI and local application/build/Docker/Python checks passed, the contributor completed the MIT checkbox, and accessible photo/evidence are attached to ready PR #198. Documented Windows root-script and physical evidence limits remain visible.
 - [x] Recorded contributor-reported BH1750 physical success on Raspberry Pi 4 Model B Rev 1.4, Debian 13.6 (trixie)/aarch64 at implementation commit `e8fbe5329a218f5d9d43354a534f1bbf57d9a95d`, with a supplied 12.5-lux workflow preview at bus 1/address 0x23. Updated scoped evidence in the guide/catalog; individual test-case results and Linux CI remain separate.
 - [x] Implemented BH1750 lux reads through the existing I2C helper, backend/API/workflows, device setup/editing and in-app/operator guides. Full application coverage suites, lint/docs/Knip/typechecks, builds, application audits, Compose configuration and 37 Python tests passed; full check retains Windows root-script failures and Docker image build is blocked by the unavailable Linux daemon. Physical verification and publication remain separate follow-ups.

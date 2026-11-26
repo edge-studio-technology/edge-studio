@@ -172,14 +172,14 @@ describe("PIM576 custom-variable workflow", () => {
       const source = dataSourcesRepo.createDataSource({ name: "Screen", type: "spi-display", config: { model: "pim576", rotation: 0 } });
       const workflow = makeWorkflow([
         { type: "manual_start", config: {} },
-        { type: "set_variable", config: { variableName: "message", variableSource: "custom_json", valueJsonText: '"Hello screen"' } },
-        { type: "control_output", config: { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: '{"text":"{{message}}"}' } },
+        { type: "set_variable", config: { variableName: "message", variableSource: "custom_json", valueJsonText: "42" } },
+        { type: "control_output", config: { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: JSON.stringify({ title: "Reading {{message}}", text: "\n{{message}}\n\n" }) } },
       ]);
       const result = await service.runAutomationWorkflow(workflow.id);
       assert.equal(result.workflow.lastError, null);
-      assert.deepEqual(JSON.parse(fetch.mock.calls[0][1].body).content, { title: "", text: "Hello screen" });
+      assert.deepEqual(JSON.parse(fetch.mock.calls[0][1].body).content, { title: "Reading 42", text: "\n42\n\n" });
       const block = db.prepare("SELECT output_json FROM automation_block_runs WHERE workflow_id = ? AND block_type = 'control_output'").get(workflow.id) as { output_json: string };
-      assert.match(block.output_json, /Hello screen/);
+      assert.equal(JSON.parse(block.output_json).output.text, "\n42\n\n");
       assert.equal(readJsonApiSourceMock.mock.calls.length, 0);
     } finally {
       env.displaysEnabled = saved.enabled;

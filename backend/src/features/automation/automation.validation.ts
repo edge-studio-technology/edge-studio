@@ -1,7 +1,7 @@
 import { env } from "../../config/env.js";
 import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
 import { getCameraCapability } from "../data-sources/cameraCapture.service.js";
-import { getDisplayCapability } from "../data-sources/displayOutput.service.js";
+import { displayContentErrors, getDisplayCapability } from "../data-sources/displayOutput.service.js";
 import { getDataSource } from "../data-sources/dataSources.repository.js";
 import { getGpioInputCapability } from "../data-sources/gpioIngestion.service.js";
 import { getSensorHelperCapability } from "../data-sources/sensorHelper.service.js";
@@ -324,9 +324,9 @@ function isReadableDataSource(type: string) {
 }
 
 function validateOutputBodyConfig(block: ValidationBlock, config: BlockConfig, targetType: string, issues: AutomationValidationIssue[]) {
-  if (targetType === "spi-display" && config.action !== "display_text") addIssue(issues, "error", "control_output.invalid_display_action", "SPI display action must be display_text.", block);
+  if (targetType === "spi-display" && config.action !== "display_text") addIssue(issues, "error", "control_output.invalid_display_action", "Set the display action to Display text.", block);
   if (targetType !== "http-output" && targetType !== "mqtt-output" && targetType !== "spi-display") return;
-  if (targetType === "spi-display" && config.bodyMode !== "custom") addIssue(issues, "error", "control_output.display_body_required", "SPI display requires Custom JSON with text and optional title.", block);
+  if (targetType === "spi-display" && config.bodyMode !== "custom") addIssue(issues, "error", "control_output.display_body_required", "Open Display content and enter the text to display.", block);
   const bodyMode = String(config.bodyMode ?? "workflow_context");
   if (bodyMode !== "custom" && bodyMode !== "workflow_context" && bodyMode !== "trigger_payload" && bodyMode !== "latest_data" && bodyMode !== "latest_data_with_media" && bodyMode !== "multipart_media" && bodyMode !== "none") {
     addIssue(issues, "error", "control_output.invalid_body_mode", "Output body mode is invalid.", block);
@@ -337,10 +337,17 @@ function validateOutputBodyConfig(block: ValidationBlock, config: BlockConfig, t
   if (bodyMode === "custom") {
     const text = typeof config.bodyTemplateText === "string" ? config.bodyTemplateText : JSON.stringify(config.bodyTemplate ?? {});
     try {
-      const payload = JSON.parse(text) as { text?: unknown; title?: unknown } | null;
-      if (targetType === "spi-display" && (!payload || typeof payload.text !== "string" || !payload.text.trim() || payload.text.length > 512 || (payload.title !== undefined && (typeof payload.title !== "string" || payload.title.length > 32 || /[\r\n]/.test(payload.title))))) addIssue(issues, "error", "control_output.invalid_display_payload", "Display JSON needs nonempty text (up to 512 characters) and an optional single-line title (up to 32 characters).", block);
+      const payload = JSON.parse(text) as unknown;
+      if (targetType === "spi-display") {
+        const { title, text } = displayContentErrors(payload);
+        if (text) addIssue(issues, "error", "control_output.invalid_display_payload", text, block);
+        if (title) addIssue(issues, "error", "control_output.invalid_display_payload", title, block);
+      }
     } catch {
-      addIssue(issues, "error", "control_output.invalid_custom_body", "Custom output body must be valid JSON.", block);
+      const message = targetType === "spi-display"
+        ? "Saved display content could not be read. Open Display content and enter the text again."
+        : "Custom output body must be valid JSON.";
+      addIssue(issues, "error", "control_output.invalid_custom_body", message, block);
     }
   }
 }

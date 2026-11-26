@@ -299,7 +299,7 @@ describe("ValidationIssueRow", () => {
       />,
     );
     expect(screen.getByText("error")).toBeInTheDocument();
-    expect(screen.getByText("Missing source (fetch_data_source) · 3 blocks")).toBeInTheDocument();
+    expect(screen.getByText("Missing source (Fetch data source) · 3 blocks")).toBeInTheDocument();
   });
 });
 

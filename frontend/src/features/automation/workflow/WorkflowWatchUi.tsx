@@ -802,8 +802,12 @@ function DomainBlockInputSummary({
       <SummaryRows
         rows={[
           { label: "Target ID", value: block.config.targetId ?? "Not selected" },
-          { label: "Action", value: block.config.action ?? "pulse" },
-          { label: "Body", value: outputBodyLabel(block.config.bodyMode) },
+          ...(block.config.action === "display_text"
+            ? [{ label: "Action", value: "Display text" }]
+            : [
+                { label: "Action", value: block.config.action ?? "pulse" },
+                { label: "Body", value: outputBodyLabel(block.config.bodyMode) },
+              ]),
         ]}
       />
     );

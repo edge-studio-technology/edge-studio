@@ -44,6 +44,22 @@ import { draftBlockDescription, isDataBlock, type DraftWorkflowBlock } from "./c
 
 const CREATE_RECIPIENT_VALUE = "__create_new_recipient__";
 
+function displayContent(config: AutomationBlock["config"]) {
+  let payload = config.bodyTemplate;
+  if (typeof config.bodyTemplateText === "string") {
+    try {
+      payload = JSON.parse(config.bodyTemplateText) as unknown;
+    } catch {
+      payload = null;
+    }
+  }
+  const { title, text } = (payload ?? {}) as { title?: unknown; text?: unknown };
+  return {
+    title: typeof title === "string" ? title : "",
+    text: typeof text === "string" ? text : "",
+  };
+}
+
 export type PersistedBlockInspectorHandle = {
   /** Persist dirty block config before leaving the options sheet. */
   flush: () => void;
@@ -487,6 +503,15 @@ export function DraftBlockInspector({
         ? selectedOutput.type
         : null;
     const bodyMode = block.config.bodyMode ?? "workflow_context";
+    const display = selectedOutput?.type === "spi-display" ? displayContent(block.config) : null;
+    function updateDisplay(content: { title: string; text: string }) {
+      onChange({
+        targetId: selectedOutput?.id,
+        action: "display_text",
+        bodyMode: "custom",
+        bodyTemplateText: JSON.stringify(content),
+      });
+    }
     return (
       <InspectorSection
         title="Output"
@@ -516,10 +541,31 @@ export function DraftBlockInspector({
             }
           />
         )}
-        {selectedOutput?.type === "spi-display" && <>
-          <TextareaField label="Display JSON" rows={6} value={block.config.bodyTemplateText ?? '{"title":"Edge Studio","text":"Hello from a workflow"}'} onChange={(event) => onChange({ targetId: selectedOutput.id, action: "display_text", bodyMode: "custom", bodyTemplateText: event.target.value })} />
-          <p className={mutedText}>Send a JSON object with text and an optional title. Insert a variable using <code>{"{{message}}"}</code> after a Set variable block. Text wraps; content that does not fit is rejected. This action updates the physical screen.</p>
-        </>}
+        {display && (
+          <fieldset className={formGridClass}>
+            <legend className="type-subtitle mb-detail-tight">Display content</legend>
+            <InputField
+              label="Title (optional)"
+              value={display.title}
+              descriptionBelow
+              description={<>Use a single line of up to 32 characters. Insert a workflow variable with <code>{"{{variableName}}"}</code>.</>}
+              error={/[\r\n]/.test(display.title) ? "Use a single line for the title."
+                : display.title.length > 32 ? "Use 32 characters or fewer for the title." : undefined}
+              onChange={(event) => updateDisplay({ ...display, title: event.target.value })}
+            />
+            <TextareaField
+              label="Text"
+              rows={5}
+              value={display.text}
+              aria-required="true"
+              descriptionBelow
+              description={<>{display.text.length} / 512 characters. Press Enter for a new line or twice for a blank line. Insert a workflow variable with <code>{"{{variableName}}"}</code>. Plain text wraps on the screen. Shorten the text or use fewer lines if it does not fit.</>}
+              error={!display.text.trim() ? "Enter the text to display."
+                : display.text.length > 512 ? "Use 512 characters or fewer for the display text." : undefined}
+              onChange={(event) => updateDisplay({ ...display, text: event.target.value })}
+            />
+          </fieldset>
+        )}
         {selectedOutput?.type === "gpio-output" && (
           <p className={mutedText}>
             Selected device active state:{" "}

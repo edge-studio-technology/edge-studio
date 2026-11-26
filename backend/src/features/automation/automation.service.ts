@@ -1132,10 +1132,15 @@ async function controlOutput(
 
   let result: unknown = null;
   if (target.type === "spi-display") {
-    if (config.action !== "display_text") throw new Error("SPI display action must be display_text");
-    if (config.bodyMode !== "custom") throw new Error("SPI display requires a custom JSON text payload");
-    const payload = await outputPayload(config, context);
-    result = await displayText({ targetId: target.id, payload: payload.body });
+    if (config.action !== "display_text" || config.bodyMode !== "custom")
+      throw new Error("Open Display content and configure the text to display.");
+    const content = parseCustomBody(config) as { title?: unknown; text?: unknown } | null;
+    const expand = (value: unknown) =>
+      typeof value === "string" ? interpolateText(value, context.variables) : value;
+    result = await displayText({
+      targetId: target.id,
+      payload: { title: expand(content?.title), text: expand(content?.text) },
+    });
   } else if (target.type === "gpio-output") {
     result = await pulseGpioOutput({
       targetId: config.targetId,
@@ -1303,6 +1308,10 @@ function interpolateValue(value: unknown, variables: Record<string, unknown>): u
 function interpolateString(value: string, variables: Record<string, unknown>) {
   const exact = value.match(/^\s*\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*$/);
   if (exact) return variableValue(exact[1], variables);
+  return interpolateText(value, variables);
+}
+
+function interpolateText(value: string, variables: Record<string, unknown>) {
   return value.replace(/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g, (_match, name: string) =>
     stringifyTemplateValue(variableValue(name, variables)),
   );

@@ -47,7 +47,7 @@ describe("SPI display output", () => {
   });
 
   it.each([null, [], {}, { text: 12 }, { text: " " }, { text: "x".repeat(513) }, { text: "Hi", title: "bad\nline" }])("rejects invalid text before hardware access: %j", async (payload) => {
-    await expect(displayText({ targetId: "screen", payload })).rejects.toThrow(/payload/);
+    await expect(displayText({ targetId: "screen", payload })).rejects.toThrow(/text to display|512 characters|single line/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

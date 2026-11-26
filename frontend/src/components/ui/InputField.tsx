@@ -6,6 +6,7 @@ import { Label } from "./Label";
 export function InputField({
   label,
   description,
+  descriptionBelow = false,
   error,
   className,
   id,
@@ -16,6 +17,7 @@ export function InputField({
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "size"> & {
   label?: ReactNode;
   description?: ReactNode;
+  descriptionBelow?: boolean;
   error?: ReactNode;
   className?: string;
   size?: InputSize;
@@ -26,6 +28,18 @@ export function InputField({
   const errorId = error ? `${controlId}-error` : undefined;
   const describedBy = [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
 
+  const descriptionNode = description ? (
+    <p
+      id={descriptionId}
+      className={cx(
+        "type-meta m-0 leading-none",
+        disabled ? "text-text-disabled" : "text-text-secondary",
+      )}
+    >
+      {description}
+    </p>
+  ) : null;
+
   return (
     <div className={cx("gap-detail-next flex flex-col", className)}>
       {label ? (
@@ -33,17 +47,7 @@ export function InputField({
           {label}
         </Label>
       ) : null}
-      {description ? (
-        <p
-          id={descriptionId}
-          className={cx(
-            "type-meta m-0 leading-none",
-            disabled ? "text-text-disabled" : "text-text-secondary",
-          )}
-        >
-          {description}
-        </p>
-      ) : null}
+      {!descriptionBelow && descriptionNode}
       <Input
         {...props}
         id={controlId}
@@ -53,6 +57,7 @@ export function InputField({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
       />
+      {descriptionBelow && descriptionNode}
       {error ? (
         <p id={errorId} role="alert" className="type-meta text-text-error m-0 leading-none">
           {error}
