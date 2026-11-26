@@ -60,7 +60,7 @@ export type AutomationBlock = {
   config: {
     sourceId?: string;
     targetId?: string;
-    action?: "pulse" | "send_request" | "publish";
+    action?: "pulse" | "send_request" | "publish" | "display_text";
     recipientAddressBookId?: string;
     tokenId?: "0x00";
     amount?: string;

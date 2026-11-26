@@ -10,6 +10,7 @@ import type { DeviceFormFields } from "./useDeviceFormFields";
 export function isDataSourceFormValid(fields: DeviceFormFields) {
   const { type, name, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (!name) return false;
+  if (type === "spi-display") return [0, 90, 180, 270].includes(fields.displayRotation);
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
   if (type === "pi-camera")
@@ -22,6 +23,8 @@ export function isDataSourceFormValid(fields: DeviceFormFields) {
 }
 
 export function DataSourceForm({
+  displayRotation,
+  setDisplayRotation,
   template,
   name,
   setName,
@@ -65,6 +68,8 @@ export function DataSourceForm({
   setMethod,
   submitLabel = "Add source",
 }: {
+  displayRotation: 0 | 90 | 180 | 270;
+  setDisplayRotation: (value: 0 | 90 | 180 | 270) => void;
   template: DataSourceTemplate | null;
   name: string;
   setName: (value: string) => void;
@@ -320,6 +325,11 @@ export function DataSourceForm({
             Camera capture is triggered by the Capture camera block in Workflows. Captured media stays
             on the Pi; Integritas stamps the media file hash.
           </MutedText>
+        </>
+      ) : type === "spi-display" ? (
+        <>
+          <SelectField label="Rotation" value={String(displayRotation)} onChange={(event) => setDisplayRotation(Number(event.target.value) as 0 | 90 | 180 | 270)} options={[0, 90, 180, 270].map((rotation) => ({ value: String(rotation), label: `${rotation}°` }))} />
+          <MutedText>PIM576 uses SPI0 CE0 with DC GPIO25 and backlight GPIO24. Use the setup guide for wiring; control its text from a workflow.</MutedText>
         </>
       ) : type === "bme-sensor" || type === "bh1750-sensor" ? (
         <>

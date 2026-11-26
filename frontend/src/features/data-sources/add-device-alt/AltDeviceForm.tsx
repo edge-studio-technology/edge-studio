@@ -39,6 +39,7 @@ export function altDeviceProvisioningSteps(fields: DeviceFormFields): Provisioni
 export function isAltDeviceFormValid(fields: DeviceFormFields) {
   const { type, name, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (!name) return false;
+  if (type === "spi-display") return [0, 90, 180, 270].includes(fields.displayRotation);
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
   if (type === "pi-camera")
@@ -133,6 +134,7 @@ export function DeviceAddedSummary({
 }
 
 function isAltDeviceSetupValid(fields: DeviceFormFields) {
+  if (fields.type === "spi-display") return [0, 90, 180, 270].includes(fields.displayRotation);
   const { type, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
@@ -469,6 +471,10 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
         </>
       )}
 
+      {type === "spi-display" && <>
+        <SelectField label="Rotation" value={String(fields.displayRotation)} onChange={(event) => fields.setDisplayRotation(Number(event.target.value) as 0 | 90 | 180 | 270)} options={[0, 90, 180, 270].map((rotation) => ({ value: String(rotation), label: `${rotation}°` }))} />
+        <p className="type-body text-text-secondary">PIM576 uses SPI0 CE0, DC GPIO25 and backlight GPIO24. Follow the saved device guide for wiring. No output is sent until you deliberately test or run a workflow.</p>
+      </>}
       {(type === "bme-sensor" || type === "bh1750-sensor") && (
         <>
           {type === "bme-sensor" && <SelectField
@@ -570,6 +576,10 @@ function ReviewStep({ template, fields }: { template: DataSourceTemplate; fields
       <DetailList>
         <DetailRow label="Type" value={template.title} />
         <DetailRow label="Name" value={fields.name || "Not set"} />
+        {fields.type === "spi-display" && <>
+          <DetailRow label="Connection" value="SPI0 CE0 · DC GPIO25 · BL GPIO24" />
+          <DetailRow label="Rotation" value={`${fields.displayRotation}°`} />
+        </>}
         {fields.description && <DetailRow label="Description" value={fields.description} />}
         {fields.type === "json-api" && <DetailRow label="URL" value={fields.url} />}
         {fields.type === "http-output" && <DetailRow label="URL" value={fields.url} />}

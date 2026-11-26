@@ -913,6 +913,13 @@ describe("workflowHelpers", () => {
   });
 
   describe("isReadableSource / isOutputTarget", () => {
+    it("keeps SPI displays output-only with a text action and suitable retarget defaults", () => {
+      const display = source({ id: "lcd", type: "spi-display", config: { model: "pim576" } });
+      expect(isReadableSource(display)).toBe(false);
+      expect(isOutputTarget(display)).toBe(true);
+      expect(defaultOutputBlockConfig(display, 500)).toMatchObject({ targetId: "lcd", action: "display_text", bodyMode: "custom" });
+      expect(retargetOutputBlockConfig({ action: "pulse", durationMs: 500 }, display)).toEqual(defaultOutputBlockConfig(display, 0));
+    });
     it("classifies readable source types", () => {
       expect(isReadableSource(source({ type: "json-api" }))).toBe(true);
       expect(isReadableSource(source({ type: "bme-sensor" }))).toBe(true);

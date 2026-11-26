@@ -28,6 +28,18 @@ function source(overrides: Partial<DataSource> = {}): DataSource {
 }
 
 describe("getDeviceSetupGuide / hasDeviceSetupGuide", () => {
+  it("creates a disabled SPI display workflow using its own custom variable and no sensor", () => {
+    const device = source({ id: "lcd", type: "spi-display", config: { model: "pim576", rotation: 90 } });
+    const guide = getDeviceSetupGuide(device)!;
+    expect(guide.title).toBe("PIM576 SPI LCD Setup");
+    expect(guide.sections.find((section) => section.title === "Wiring")?.table).toContainEqual(["DC", "GPIO25 / physical pin 22"]);
+    const workflow = guide.actions![0].workflow(device);
+    expect(workflow.enabled).toBe(false);
+    expect(workflow.blocks.map((block) => block.type)).toEqual(["manual_start", "set_variable", "control_output"]);
+    expect(workflow.blocks[1].config).toMatchObject({ variableName: "message", variableSource: "custom_json" });
+    expect(workflow.blocks[2].config).toMatchObject({ targetId: "lcd", action: "display_text", bodyMode: "custom" });
+    expect(JSON.parse(workflow.blocks[2].config!.bodyTemplateText!)).toEqual({ title: "Edge Studio", text: "{{message}}" });
+  });
   it("gives BH1750 wiring, saved settings, verification and a disabled readable starter workflow", () => {
     const device = source({ type: "bh1750-sensor", config: { sensor: "bh1750", bus: 1, address: "0x5c" } });
     const guide = getDeviceSetupGuide(device)!;

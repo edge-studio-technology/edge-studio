@@ -5,6 +5,13 @@ import type { DataSource, DataSourceTemplate } from "../../../src/features/data-
 import { buildDeviceConfigInput } from "../../../src/features/data-sources/buildDeviceConfig";
 
 describe("useDeviceFormFields", () => {
+  it("round trips the saved display rotation without introducing unrelated fields", () => {
+    const { result } = renderHook(() => useDeviceFormFields());
+    act(() => result.current.fillFromSource({ id: "lcd", name: "Screen", type: "spi-display", config: { model: "pim576", rotation: 270 } } as DataSource));
+    expect(buildDeviceConfigInput(result.current.fields, {})).toEqual({ model: "pim576", rotation: 270 });
+    act(() => result.current.reset());
+    expect(result.current.fields.displayRotation).toBe(0);
+  });
   it("round trips saved BH1750 editing and keeps BME defaults separate", () => {
     const { result } = renderHook(() => useDeviceFormFields());
     act(() => result.current.fillFromSource({ id: "light", name: "Room light", description: "", type: "bh1750-sensor", config: { sensor: "bh1750", bus: 1, address: "0x5c" } } as DataSource));

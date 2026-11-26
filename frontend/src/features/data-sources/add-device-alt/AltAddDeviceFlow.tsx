@@ -108,7 +108,7 @@ export function AltAddDeviceFlow({
     setStep(parentStep(step));
   }
 
-  const options = stepOptions(step, setStep, selectTemplate).filter((option) => option.title !== "BH1750 Light Sensor" || capabilities?.sensors?.enabled);
+  const options = stepOptions(step, setStep, selectTemplate).filter((option) => (option.title !== "BH1750 Light Sensor" || capabilities?.sensors?.enabled) && (option.title !== "PIM576 SPI LCD" || capabilities?.displays?.enabled));
   const provisioningSteps = altDeviceProvisioningSteps(fields);
   const provisioningStep = provisioningSteps[provisioningStepIndex];
   const isFinalProvisioningStep = provisioningStepIndex === provisioningSteps.length - 1;
@@ -238,6 +238,7 @@ export function AltAddDeviceFlow({
     >
       {step === "sensor-templates" && !capabilities?.sensors?.enabled && <p className="type-body text-text-secondary">Enable I2C sensors in Devices → Hardware support to add a BH1750 light sensor.</p>}
       <SetupDevicePicker step={step} options={options} />
+      {step === "root" && !capabilities?.displays?.enabled && <p className="type-body text-text-secondary">Enable SPI displays in Devices → Hardware support to add a PIM576 LCD.</p>}
     </Modal>
   );
 }
@@ -304,7 +305,7 @@ function stepIntro(step: WizardStep) {
     case "actuators":
       return { title: "Actuators", description: "Control physical devices connected to this Pi." };
     default:
-      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, Pi-connected sensor, camera, or actuator." };
+      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, Pi-connected device, or this Pi's system data." };
   }
 }
 
@@ -374,6 +375,7 @@ function stepOptions(
     case "actuators":
       return [
         templateOption("GPIO LED", "Control a low-current LED output from workflow action blocks.", findOutputTemplate("GPIO LED"), selectTemplate),
+        templateOption("PIM576 SPI LCD", "Display text and workflow variables on the Pi-connected screen.", findOutputTemplate("PIM576 SPI LCD"), selectTemplate),
       ];
     default:
       return [

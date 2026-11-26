@@ -41,6 +41,45 @@ afterAll(() => {
   teardown();
 });
 
+describe("PIM576 output device", () => {
+  it("round trips config, prevents shared GPIO ownership, rejects reads and deliberately tests output", async () => {
+    const input = { name: "Screen", type: "spi-display", config: { model: "pim576", rotation: 90 } };
+    const gpio = dataSources.createDataSource({ name: "Busy GPIO", type: "gpio-output", config: { chip: "gpiochip0", pin: 25 } });
+    const busy = await request(app).post("/api/data-sources").send(input);
+    assert.equal(busy.status, 400);
+    assert.match(busy.body.error, /already used/);
+    dataSources.deleteDataSource(gpio.id);
+    const created = await request(app).post("/api/data-sources").send(input);
+    assert.equal(created.status, 200);
+    const id = created.body.item.id;
+    try {
+      assert.equal((await request(app).post("/api/data-sources").send(input)).status, 400);
+      assert.equal((await request(app).post("/api/data-sources").send({ name: "Conflicting pin", type: "gpio-output", config: { chip: "/dev/gpiochip0", pin: 24 } })).status, 400);
+      assert.equal((await request(app).post(`/api/data-sources/${id}/read`).send({})).status, 400);
+      const edited = await request(app).patch(`/api/data-sources/${id}`).send({ ...input, config: { model: "pim576", rotation: 180 } });
+      assert.equal(edited.status, 200);
+      assert.equal(edited.body.item.id, id);
+      assert.deepEqual(edited.body.item.config, { model: "pim576", rotation: 180 });
+      const saved = { enabled: sensorEnv.displaysEnabled, token: sensorEnv.displayHelperToken };
+      sensorEnv.displaysEnabled = true;
+      sensorEnv.displayHelperToken = "display-test-token";
+      const fetch = vi.fn().mockResolvedValue(new Response('{}'));
+      vi.stubGlobal("fetch", fetch);
+      try {
+        const tested = await request(app).post(`/api/data-sources/${id}/test-output`).send({});
+        assert.equal(tested.status, 200);
+        assert.equal(tested.body.result.action, "display_text");
+        assert.deepEqual(JSON.parse(fetch.mock.calls[0][1].body).content, { title: "Edge Studio", text: "Display connected" });
+      } finally {
+        sensorEnv.displaysEnabled = saved.enabled;
+        sensorEnv.displayHelperToken = saved.token;
+      }
+    } finally {
+      dataSources.deleteDataSource(id);
+    }
+  });
+});
+
 describe("BH1750 device create/edit/manual read", () => {
   it("validates config, preserves the saved identity on edit and stores a zero-lux read and hash", async () => {
     const invalid = await request(app).post("/api/data-sources").send({ name: "Light", type: "bh1750-sensor", config: { address: "0x76" } });

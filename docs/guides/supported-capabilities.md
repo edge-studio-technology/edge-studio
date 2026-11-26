@@ -1,6 +1,6 @@
 # Supported hardware, devices and workflow blocks
 
-Use this catalog to check what Edge Studio can do before choosing hardware or proposing a new integration. It describes the implementation in this checkout, reviewed on **2026-11-19**: four optional hardware/service capabilities, fifteen device/integration templates and fifteen workflow block types. Older installed versions may differ.
+Use this catalog to check what Edge Studio can do before choosing hardware or proposing a new integration. It describes the implementation in this checkout, reviewed on **2026-11-20**: five optional hardware/service capabilities, sixteen device/integration templates and fifteen workflow block types. Older installed versions may differ.
 
 Jump to [hardware capabilities](#hardware-capabilities), [devices and integrations](#devices-and-integrations), [workflow blocks](#workflow-blocks), or [requesting and contributing support](#requesting-and-contributing-support).
 
@@ -28,6 +28,7 @@ These enable local interfaces or services; they are separate from individual con
 | Camera | Raspberry Pi Camera captures | Host camera helper and working `rpicam`/`libcamera` tools; the host must detect the camera. Camera Module 3 (`imx708`) needs a compatible host stack. This is not general USB webcam support | [Camera requirements](../../README.md#configuration) and the device's in-app guide |
 | GPIO | GPIO inputs, button/PIR events and LED output | Access to `gpiochip0`, compatible host GPIO tooling and safe 3.3V signal wiring. Listed output support is for low-current LEDs | [GPIO wiring and settings](./gpio-device-settings.md) |
 | I2C sensors | BME280/BME680 and BH1750 reads | Host I2C enabled, sensor helper and model-specific dependencies; configure the correct bus/address | [BME setup](./bme280-sensor.md), [BH1750 setup](./bh1750-sensor.md) |
+| SPI displays | PIM576 text output | Host SPI0 CE0 and GPIO access, opt-in authenticated display helper and managed Python dependencies; first adoption requires an installer refresh | [PIM576 setup](./pim576-display.md) |
 | Local MQTT broker | An optional broker for MQTT devices | Network reachability and the app's broker configuration. The current local broker has no authentication and belongs on a trusted network. External brokers can be used without enabling this local service | [ESP32/broker setup](./esp32-mqtt-sensors.md) and [security limits](../../SECURITY.md) |
 
 ## Devices and integrations
@@ -60,6 +61,7 @@ Webhook, MQTT and GPIO listeners operate while enabled workflows need them. They
 | GPIO LED | Control a low-current LED through a GPIO pin | GPIO enabled, safe wiring and series resistor; **Control device**; test with **Test pulse** first | Prototype test documented; [GPIO18 LED](./gpio-device-settings.md#output-led-on-gpio18) |
 | HTTP JSON Target | Send requests/payloads to an HTTP endpoint; also supports configured multipart media uploads | Reachable allowed URL and a compatible receiving endpoint; **Control device** | Protocol integration; [test example](./tester-device-workflows.md#test-with-a-pc) |
 | MQTT Publisher | Publish JSON to a broker/topic | Reachable broker and compatible receiver; **Control device** | Protocol integration; [test example](./tester-device-workflows.md#test-with-a-pc) |
+| PIM576 SPI LCD | Display title/text on Pimoroni's 1.54-inch 240×240 SPI screen | SPI displays enabled; fixed SPI0 CE0/DC GPIO25/BL GPIO24 wiring; **Control device → Display text** with a custom variable | Pi 4 Model B Rev 1.4 / Debian 13 / aarch64 verified; [setup, exact commit and evidence limits](./pim576-display.md#verification-status) |
 
 Outputs do not become readable inputs. Generic GPIO access does not establish support for motors, relays or mains equipment.
 
@@ -81,7 +83,7 @@ These are the current toolkit names. Some older guides call **Control device** �
 | Logic | If field matches | Continue only when a comparison passes, including numeric **changed by at least** | Trigger field or previously set variable; change baseline persists until successful completion and resets on condition edits; stops later blocks on failure |
 | Logic | Wait | Delay the next block | Configured duration; does not add automatic retry logic |
 | Action | Show preview | Create a local Workflow Inbox item | Text, JSON, links or image references from configured content/context; not an external notification service |
-| Action | Control device | Send an output command | GPIO LED, HTTP JSON Target or MQTT Publisher; actual effect depends on target/action |
+| Action | Control device | Send an output command | GPIO LED, HTTP JSON Target, MQTT Publisher or PIM576 SPI LCD; actual effect depends on target/action |
 | Action | Send payment | Send native MINIMA to a saved recipient | Available Minima node, usable address book recipient and funds; current workflow payments use native MINIMA (`0x00`) |
 | Attached | Stamp data | Create an Integritas proof for a data hash | Attach to Record trigger event, Fetch data source or Capture camera; configured Integritas access required |
 

@@ -38,6 +38,7 @@ afterAll(() => {
 // matching. So a bare GET against each mounted router's prefix is enough to prove
 // that router sits behind the gate; it does not need to be a real endpoint.
 const protectedPrefixes = [
+  "/api/host-capabilities",
   "/api/auth",
   "/api/user",
   "/api/status",
@@ -60,6 +61,9 @@ const protectedPrefixes = [
 // asymmetric on the same primitives (health vs. read, resync/config vs. peers/add), and the
 // failure mode is a new route quietly shipping ungated.
 const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
+  ["post", "/api/host-capabilities/displays/enable"],
+  ["post", "/api/host-capabilities/displays/disable"],
+  ["post", "/api/host-capabilities/displays/setup-prerequisites"],
     ["get", "/api/auth/settings/session"],
     ["post", "/api/auth/settings/session"],
     ["get", "/api/retention/camera"],

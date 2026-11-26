@@ -12,6 +12,7 @@ import { getGpioInputCapability, syncGpioDataSources } from "./gpioIngestion.ser
 import { pulseGpioOutput } from "./gpioOutput.service.js";
 import { publishMqttOutput } from "./mqttOutput.service.js";
 import { getCameraCapability } from "./cameraCapture.service.js";
+import { displayText, getDisplayCapability } from "./displayOutput.service.js";
 import { parseBh1750SensorConfig, parseBmeSensorConfig, parseDataSourceConfig, parseDeviceSystemDataConfig, parseGpioInputConfig, parseGpioOutputConfig, parseHttpOutputConfig, parseJsonApiConfig, processWebhookPayload, readDeviceSystemDataSource, readJsonApiSource, sendHttpOutput, serializeDataSource } from "./dataSources.service.js";
 import { getSensorHelperCapability, readBh1750SensorSource, readBmeSensorSource } from "./sensorHelper.service.js";
 
@@ -47,6 +48,7 @@ dataSourcesRouter.get("/", (_req, res) => {
 
 dataSourcesRouter.get("/capabilities", async (_req, res) => {
   res.json({
+    displays: await getDisplayCapability(),
     gpioInput: getGpioInputCapability(),
     mqttBroker: {
       enabled: env.mqttBrokerEnabled,
@@ -65,7 +67,7 @@ dataSourcesRouter.post("/", requireRole("admin"), async (req, res) => {
   const description = typeof req.body?.description === "string" ? req.body.description : "";
 
   if (!name) return badRequest(res, "name is required", { field: "name" });
-  if (!isSupportedDeviceType(type)) return badRequest(res, "Only HTTP JSON API, webhook, MQTT, GPIO input/output, Pi Camera, BME sensor, BH1750 sensor, Device System Data, HTTP output, and MQTT output devices are supported", { type });
+  if (!isSupportedDeviceType(type)) return badRequest(res, "Only HTTP JSON API, webhook, MQTT, GPIO input/output, Pi Camera, BME sensor, BH1750 sensor, Device System Data, HTTP output, MQTT output, and PIM576 SPI display devices are supported", { type });
 
   try {
     const config = parseDataSourceConfig(type, req.body?.config);
@@ -99,7 +101,7 @@ dataSourcesRouter.patch("/:id", requireRole("admin"), async (req, res) => {
   const description = typeof req.body?.description === "string" ? req.body.description : "";
 
   if (!name) return badRequest(res, "name is required", { field: "name" });
-  if (!isSupportedDeviceType(type)) return badRequest(res, "Only HTTP JSON API, webhook, MQTT, GPIO input/output, Pi Camera, BME sensor, BH1750 sensor, Device System Data, HTTP output, and MQTT output devices are supported", { type });
+  if (!isSupportedDeviceType(type)) return badRequest(res, "Only HTTP JSON API, webhook, MQTT, GPIO input/output, Pi Camera, BME sensor, BH1750 sensor, Device System Data, HTTP output, MQTT output, and PIM576 SPI display devices are supported", { type });
 
   try {
     const config = parseDataSourceConfig(type, req.body?.config, JSON.parse(existing.config) as unknown);
@@ -116,7 +118,7 @@ dataSourcesRouter.patch("/:id", requireRole("admin"), async (req, res) => {
 dataSourcesRouter.post("/:id/read", requireRole("admin"), async (req, res) => {
   const record = getDataSource(req.params.id);
   if (!record) return notFound(res, "Data source not found");
-  if (record.type === "webhook" || record.type === "mqtt" || record.type === "gpio-input" || record.type === "gpio-output" || record.type === "pi-camera" || record.type === "http-output" || record.type === "mqtt-output") return badRequest(res, "This device cannot be read manually", { sourceId: record.id, type: record.type });
+  if (record.type === "webhook" || record.type === "mqtt" || record.type === "gpio-input" || record.type === "gpio-output" || record.type === "pi-camera" || record.type === "http-output" || record.type === "mqtt-output" || record.type === "spi-display") return badRequest(res, "This device cannot be read manually", { sourceId: record.id, type: record.type });
 
   try {
     if (record.type === "bme-sensor" || record.type === "bh1750-sensor") {
@@ -156,7 +158,9 @@ dataSourcesRouter.post("/:id/test-output", requireRole("admin"), async (req, res
 
   try {
     const payload = req.body?.payload ?? { test: true, deviceId: record.id, deviceName: record.name, sentAt: new Date().toISOString() };
-    const result = record.type === "gpio-output"
+    const result = record.type === "spi-display"
+      ? await displayText({ targetId: record.id, payload: req.body?.payload ?? { title: "Edge Studio", text: "Display connected" } })
+      : record.type === "gpio-output"
       ? await pulseGpioOutput({ targetId: record.id, durationMs: req.body?.durationMs === undefined ? 500 : Number(req.body.durationMs) })
       : record.type === "http-output"
         ? await sendHttpOutput(parseHttpOutputConfig(JSON.parse(record.config) as unknown), payload)
@@ -171,6 +175,7 @@ dataSourcesRouter.post("/:id/test-output", requireRole("admin"), async (req, res
 });
 
 function isSupportedDeviceType(type: string) {
+  if (type === "spi-display") return true;
   return type === "json-api" || type === "webhook" || type === "mqtt" || type === "gpio-input" || type === "gpio-output" || type === "pi-camera" || type === "bme-sensor" || type === "bh1750-sensor" || type === "device-system-data" || type === "http-output" || type === "mqtt-output";
 }
 
@@ -190,8 +195,21 @@ function sourceUrlForReadFailure(type: string, config: unknown) {
 }
 
 function validateGpioPinAvailable(type: string, config: unknown, currentId: string | null) {
+  const displayPins = [8, 10, 11, 24, 25];
+  if (type === "spi-display") {
+    for (const source of listDataSources()) {
+      if (source.id === currentId) continue;
+      if (source.type === "spi-display") throw new Error("Only one PIM576 display on SPI0 CE0 can be configured");
+      if (source.type === "gpio-input" || source.type === "gpio-output") {
+        const saved = JSON.parse(source.config) as { chip?: string; pin?: number };
+        if ((saved.chip ?? "gpiochip0").replace("/dev/", "") === "gpiochip0" && displayPins.includes(Number(saved.pin))) throw new Error(`Display GPIO pin is already used by ${source.name}`);
+      }
+    }
+    return;
+  }
   if (type !== "gpio-input" && type !== "gpio-output") return;
   const target = type === "gpio-input" ? parseGpioInputConfig(config) : parseGpioOutputConfig(config);
+  if (target.chip.replace("/dev/", "") === "gpiochip0" && displayPins.includes(target.pin) && listDataSources().some((source) => source.id !== currentId && source.type === "spi-display")) throw new Error(`GPIO${target.pin} is reserved by the PIM576 display`);
 
   for (const source of listDataSources()) {
     if (source.id === currentId || (source.type !== "gpio-input" && source.type !== "gpio-output")) continue;

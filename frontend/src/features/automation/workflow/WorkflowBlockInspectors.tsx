@@ -474,7 +474,7 @@ export function DraftBlockInspector({
 
   if (block.type === "control_output") {
     const selectedOutput = outputTargets.find((source) => source.id === block.config.targetId);
-    const selectedAction =
+    const selectedAction = selectedOutput?.type === "spi-display" ? "display_text" :
       selectedOutput?.type === "gpio-output"
         ? "pulse"
         : selectedOutput?.type === "http-output"
@@ -516,6 +516,10 @@ export function DraftBlockInspector({
             }
           />
         )}
+        {selectedOutput?.type === "spi-display" && <>
+          <TextareaField label="Display JSON" rows={6} value={block.config.bodyTemplateText ?? '{"title":"Edge Studio","text":"Hello from a workflow"}'} onChange={(event) => onChange({ targetId: selectedOutput.id, action: "display_text", bodyMode: "custom", bodyTemplateText: event.target.value })} />
+          <p className={mutedText}>Send a JSON object with text and an optional title. Insert a variable using <code>{"{{message}}"}</code> after a Set variable block. Text wraps; content that does not fit is rejected. This action updates the physical screen.</p>
+        </>}
         {selectedOutput?.type === "gpio-output" && (
           <p className={mutedText}>
             Selected device active state:{" "}

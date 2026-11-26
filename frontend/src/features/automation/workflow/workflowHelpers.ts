@@ -502,6 +502,7 @@ export function examplePayload(workflow: AutomationWorkflow) {
 }
 
 export function sourceLabel(source: DataSource) {
+  if (source.type === "spi-display") return "PIM576 SPI LCD";
   if (source.type === "webhook") return "Webhook receive URL";
   if (source.type === "mqtt")
     return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
@@ -536,12 +537,14 @@ export function isReadableSource(source: DataSource) {
 }
 
 export function isOutputTarget(source: DataSource) {
+  if (source.type === "spi-display") return true;
   return (
     source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output"
   );
 }
 
 export function outputActionForTarget(source: DataSource | undefined) {
+  if (source?.type === "spi-display") return "display_text";
   if (source?.type === "http-output") return "send_request";
   if (source?.type === "mqtt-output") return "publish";
   return "pulse";
@@ -552,6 +555,7 @@ export function defaultOutputBlockConfig(
   durationMs: number,
 ): AutomationBlock["config"] {
   if (source?.type === "gpio-output") return { targetId: source.id, action: "pulse", durationMs };
+  if (source?.type === "spi-display") return { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: '{"title":"Edge Studio","text":"Hello from a workflow"}' };
   if (source?.type === "http-output") {
     return {
       targetId: source.id,
@@ -576,6 +580,7 @@ export function retargetOutputBlockConfig(
   target: DataSource | undefined,
 ): AutomationBlock["config"] {
   if (!target) return { ...config, targetId: "" };
+  if (target.type === "spi-display") return defaultOutputBlockConfig(target, 0);
   if (target.type === "gpio-output")
     return { targetId: target.id, action: "pulse", durationMs: config.durationMs ?? 500 };
   if (target.type !== "http-output" && target.type !== "mqtt-output")

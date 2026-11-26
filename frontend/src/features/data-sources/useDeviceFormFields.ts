@@ -8,6 +8,7 @@ import type { DataSource, DataSourceTemplate } from "./dataSourceTypes";
  */
 export function useDeviceFormFields() {
   const [name, setName] = useState("");
+  const [displayRotation, setDisplayRotation] = useState<0 | 90 | 180 | 270>(0);
   const [description, setDescription] = useState("");
   const [type, setType] = useState<DataSource["type"]>("json-api");
   const [url, setUrl] = useState("");
@@ -37,6 +38,7 @@ export function useDeviceFormFields() {
     config: DataSource["config"],
   ) {
     setName(nextName);
+    setDisplayRotation(config.rotation ?? 0);
     setDescription(nextDescription);
     setType(nextType);
     setUrl(config.url ?? "");
@@ -69,6 +71,7 @@ export function useDeviceFormFields() {
   }
 
   function reset() {
+    setDisplayRotation(0);
     setName("");
     setDescription("");
     setType("json-api");
@@ -95,6 +98,8 @@ export function useDeviceFormFields() {
 
   return {
     fields: {
+      displayRotation,
+      setDisplayRotation,
       name,
       setName,
       description,

@@ -3,10 +3,12 @@ export type DataSource = {
   createdAt: string;
   updatedAt: string;
   name: string;
-  type: "json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "bh1750-sensor" | "device-system-data" | "http-output" | "mqtt-output";
+  type: "json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "bh1750-sensor" | "device-system-data" | "http-output" | "mqtt-output" | "spi-display";
   status: string;
   description: string | null;
   config: {
+    model?: "pim576";
+    rotation?: 0 | 90 | 180 | 270;
     url?: string;
     method?: "GET" | "POST" | "PUT" | "PATCH";
     headers?: Record<string, string>;
@@ -55,6 +57,7 @@ export type DataSourceTemplate = {
 };
 
 export type DataSourceCapabilities = {
+  displays?: { enabled: boolean; available: boolean; reason: string | null; supportedModels?: string[] };
   gpioInput: {
     enabled?: boolean;
     available: boolean;
@@ -85,7 +88,7 @@ export type DataSourceCapabilities = {
 };
 
 export type HostCapability = {
-  name: "camera" | "gpio" | "sensors" | "mqtt";
+  name: "camera" | "gpio" | "sensors" | "mqtt" | "displays";
   enabled: boolean;
   installed: boolean;
   available: boolean;

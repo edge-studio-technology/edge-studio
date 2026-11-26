@@ -377,7 +377,8 @@ function DeviceCell({
       source.type === "gpio-output" ||
       source.type === "pi-camera" ||
       source.type === "http-output" ||
-      source.type === "mqtt-output";
+      source.type === "mqtt-output" ||
+      source.type === "spi-display";
     return (
       <TableCell sticky className="w-24 whitespace-nowrap">
         <RowActions>
@@ -387,8 +388,8 @@ function DeviceCell({
           <TableIconMenu
             aria-label={`More actions for ${source.name}`}
             items={[
-              ...(source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output"
-                ? [{ label: source.type === "gpio-output" ? "Test pulse" : "Test output", disabled: busy || Boolean(disabledHardwareReason), title: disabledHardwareReason ?? undefined, onClick: onTestOutput }]
+              ...(source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output" || source.type === "spi-display"
+                ? [{ label: source.type === "spi-display" ? "Test display" : source.type === "gpio-output" ? "Test pulse" : "Test output", disabled: busy || Boolean(disabledHardwareReason), title: disabledHardwareReason ?? undefined, onClick: onTestOutput }]
                 : []),
               ...(hasDeviceSetupGuide(source) ? [{ label: "Setup guide", disabled: busy, onClick: onOpenSetupGuide }] : []),
               { label: "View details", disabled: busy, onClick: onViewDetails },
@@ -418,6 +419,7 @@ function gpioEndpoint(source: DataSource) {
 }
 
 function sourceTypeLabel(source: DataSource) {
+  if (source.type === "spi-display") return "PIM576 SPI LCD";
   if (source.type === "gpio-input" && source.config.profile === "pir-motion")
     return "PIR Motion Sensor";
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board")
@@ -469,6 +471,7 @@ function sourceDirection(source: DataSource) {
 }
 
 function sourceEndpoint(source: DataSource) {
+  if (source.type === "spi-display") return `SPI0 CE0 · DC GPIO25 · BL GPIO24 · ${source.config.rotation ?? 0}°`;
   if (source.type === "webhook") return webhookUrl(source);
   if (source.type === "mqtt" || source.type === "mqtt-output") return mqttEndpoint(source);
   if (source.type === "gpio-input") return gpioEndpoint(source);

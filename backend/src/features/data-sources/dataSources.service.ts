@@ -117,6 +117,7 @@ export function parseJsonApiConfig(value: unknown): JsonApiConfig {
 }
 
 export function parseDataSourceConfig(type: string, value: unknown, existingConfig?: unknown) {
+  if (type === "spi-display") return parseSpiDisplayConfig(value);
   if (type === "webhook") return parseWebhookConfig(value, existingConfig);
   if (type === "mqtt") return parseMqttConfig(value);
   if (type === "http-output") return parseHttpOutputConfig(value);
@@ -128,6 +129,15 @@ export function parseDataSourceConfig(type: string, value: unknown, existingConf
   if (type === "bh1750-sensor") return parseBh1750SensorConfig(value);
   if (type === "device-system-data") return parseDeviceSystemDataConfig(value);
   return parseJsonApiConfig(value);
+}
+
+export function parseSpiDisplayConfig(value: unknown) {
+  const config = value as { model?: unknown; rotation?: unknown } | null;
+  const model = config?.model ?? "pim576";
+  const rotation = config?.rotation ?? 0;
+  if (model !== "pim576") throw new Error("config.model must be pim576");
+  if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270) throw new Error("config.rotation must be 0, 90, 180 or 270");
+  return { model: "pim576" as const, rotation };
 }
 
 export function parseWebhookConfig(value: unknown, existingConfig?: unknown): WebhookConfig {

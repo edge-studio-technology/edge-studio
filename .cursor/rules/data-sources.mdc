@@ -7,7 +7,8 @@ alwaysApply: false
 # Data Source Rules
 
 - Supported V1 input/capture source types are HTTP JSON Source fetches, Device System Data reads, BME280/BME680 Environmental Sensor reads, BH1750 Light Sensor lux reads, Webhook Receiver JSON receives, MQTT Subscriber JSON subscriptions, Raspberry Pi GPIO Input Pin events, and Raspberry Pi Camera captures.
-- Supported V1 output target types are GPIO LED pulses, HTTP JSON Target requests, and MQTT Publisher JSON publishes.
+- Supported V1 output target types are GPIO LED pulses, HTTP JSON Target requests, MQTT Publisher JSON publishes, and PIM576 SPI LCD text updates.
+- PIM576 is output-only through Control device with display_text and a custom JSON title/text payload. It requires the opt-in displays helper, fixed SPI0 CE0/DC GPIO25/BL GPIO24 wiring, and explicit physical verification. Keep the starter workflow sensor-independent with a custom variable; preserve GPIO pin ownership checks.
 - Skip file-source and manual-upload source types unless explicitly requested.
 - Store the latest JSON preview and latest hash on the data source.
 - Push-source reads (webhook, MQTT, GPIO) store `dataSourceReference(id)` (`data-source:<id>`) as `source_url`, never a webhook URL or broker URL, since those carry credentials. Webhook-token and URL-userinfo redaction lives in `shared/redact.ts`; do not log or persist raw webhook paths elsewhere.

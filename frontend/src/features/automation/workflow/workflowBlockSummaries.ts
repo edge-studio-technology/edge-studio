@@ -214,6 +214,7 @@ function contentModeLabel(mode: AutomationBlock["config"]["contentMode"]) {
 function outputActionLabel(action: AutomationBlock["config"]["action"]) {
   if (action === "send_request") return "Send request";
   if (action === "publish") return "Publish";
+  if (action === "display_text") return "Display text";
   return "Pulse";
 }
 

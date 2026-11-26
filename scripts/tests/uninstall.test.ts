@@ -142,10 +142,15 @@ class UninstallTests(unittest.TestCase):
 
     def test_service_ownership_and_custom_firewall_values(self):
         path = self.units / "edge-studio-host-agent.service"
+        display = self.units / "edge-studio-display-helper.service"
         path.write_text("WorkingDirectory=" + str(self.app) + "\\nEnvironment=HOST_AGENT_PORT=48182\\nEnvironment=EDGE_STUDIO_DOCKER_SUBNET=172.31.0.0/24\\nExecStartPre=iptables -C INPUT\\n")
+        display.write_text("WorkingDirectory=" + str(self.app) + "\\nEnvironment=DISPLAY_HELPER_PORT=48183\\nEnvironment=EDGE_STUDIO_DOCKER_SUBNET=172.31.0.0/24\\nExecStartPre=iptables -C INPUT\\n")
         services = scope["owned_services"](self.app, self.units)
-        self.assertEqual(services, [path])
-        self.assertEqual(scope["firewall_rules"](services), [["INPUT", "-s", "172.31.0.0/24", "-p", "tcp", "--dport", "48182", "-j", "ACCEPT"]])
+        self.assertEqual(services, [path, display])
+        self.assertEqual(scope["firewall_rules"](services), [
+            ["INPUT", "-s", "172.31.0.0/24", "-p", "tcp", "--dport", "48182", "-j", "ACCEPT"],
+            ["INPUT", "-s", "172.31.0.0/24", "-p", "tcp", "--dport", "48183", "-j", "ACCEPT"],
+        ])
         with self.assertRaisesRegex(ValueError, "another installation"):
             scope["owned_services"](self.root / "another-install", self.units)
 

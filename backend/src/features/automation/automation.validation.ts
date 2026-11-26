@@ -1,6 +1,7 @@
 import { env } from "../../config/env.js";
 import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
 import { getCameraCapability } from "../data-sources/cameraCapture.service.js";
+import { getDisplayCapability } from "../data-sources/displayOutput.service.js";
 import { getDataSource } from "../data-sources/dataSources.repository.js";
 import { getGpioInputCapability } from "../data-sources/gpioIngestion.service.js";
 import { getSensorHelperCapability } from "../data-sources/sensorHelper.service.js";
@@ -127,6 +128,7 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
     if (target?.type) hostBackedSourceTypes.add(target.type);
   }
   const hardwareCapabilities: HardwareCapabilities = {
+    displays: hostBackedSourceTypes.has("spi-display") ? await getDisplayCapability() : null,
     camera: blocks.some((block) => block.enabled && block.type === "capture_camera") || hostBackedSourceTypes.has("pi-camera") ? normalizeRuntimeCapability(await getCameraCapability()) : null,
     gpio: hostBackedSourceTypes.has("gpio-input") || hostBackedSourceTypes.has("gpio-output") ? getGpioInputCapability() : null,
     sensors: hostBackedSourceTypes.has("bme-sensor") || hostBackedSourceTypes.has("bh1750-sensor") ? await getSensorHelperCapability() : null,
@@ -249,6 +251,7 @@ function validateBlockReference(block: ValidationBlock, config: BlockConfig, iss
 
 type RuntimeCapability = { enabled?: boolean; available: boolean; reason?: string | null } | null;
 type HardwareCapabilities = {
+  displays: RuntimeCapability;
   camera: RuntimeCapability;
   gpio: RuntimeCapability;
   sensors: (RuntimeCapability & { supportedSensors?: string[] }) | null;
@@ -262,6 +265,7 @@ function validateSourceHardware(
   issues: AutomationValidationIssue[],
 ) {
   if (source.type === "pi-camera") validateHardwareCapability(block, "camera", hardwareCapabilities.camera, issues);
+  if (source.type === "spi-display") validateHardwareCapability(block, "displays", hardwareCapabilities.displays, issues);
   if (source.type === "bme-sensor" || source.type === "bh1750-sensor") validateHardwareCapability(block, "sensors", hardwareCapabilities.sensors, issues);
   if (source.type === "bh1750-sensor" && hardwareCapabilities.sensors?.available && !hardwareCapabilities.sensors.supportedSensors?.includes("bh1750")) {
     addIssue(issues, "error", "sensors.unsupported_model", "The sensor helper is not reporting BH1750 support. Repair I2C sensors from Devices -> Hardware support.", block);
@@ -286,6 +290,7 @@ function validateHardwareCapability(
 }
 
 function capabilityLabel(name: keyof HardwareCapabilities) {
+  if (name === "displays") return "SPI display";
   if (name === "camera") return "Pi Camera";
   if (name === "gpio") return "GPIO";
   if (name === "sensors") return "I2C sensor";
@@ -310,6 +315,7 @@ function validateEventStartConfig(block: ValidationBlock, config: BlockConfig, i
 }
 
 function isOutputTarget(type: string) {
+  if (type === "spi-display") return true;
   return type === "gpio-output" || type === "http-output" || type === "mqtt-output";
 }
 
@@ -318,7 +324,9 @@ function isReadableDataSource(type: string) {
 }
 
 function validateOutputBodyConfig(block: ValidationBlock, config: BlockConfig, targetType: string, issues: AutomationValidationIssue[]) {
-  if (targetType !== "http-output" && targetType !== "mqtt-output") return;
+  if (targetType === "spi-display" && config.action !== "display_text") addIssue(issues, "error", "control_output.invalid_display_action", "SPI display action must be display_text.", block);
+  if (targetType !== "http-output" && targetType !== "mqtt-output" && targetType !== "spi-display") return;
+  if (targetType === "spi-display" && config.bodyMode !== "custom") addIssue(issues, "error", "control_output.display_body_required", "SPI display requires Custom JSON with text and optional title.", block);
   const bodyMode = String(config.bodyMode ?? "workflow_context");
   if (bodyMode !== "custom" && bodyMode !== "workflow_context" && bodyMode !== "trigger_payload" && bodyMode !== "latest_data" && bodyMode !== "latest_data_with_media" && bodyMode !== "multipart_media" && bodyMode !== "none") {
     addIssue(issues, "error", "control_output.invalid_body_mode", "Output body mode is invalid.", block);
@@ -329,7 +337,8 @@ function validateOutputBodyConfig(block: ValidationBlock, config: BlockConfig, t
   if (bodyMode === "custom") {
     const text = typeof config.bodyTemplateText === "string" ? config.bodyTemplateText : JSON.stringify(config.bodyTemplate ?? {});
     try {
-      JSON.parse(text) as unknown;
+      const payload = JSON.parse(text) as { text?: unknown; title?: unknown } | null;
+      if (targetType === "spi-display" && (!payload || typeof payload.text !== "string" || !payload.text.trim() || payload.text.length > 512 || (payload.title !== undefined && (typeof payload.title !== "string" || payload.title.length > 32 || /[\r\n]/.test(payload.title))))) addIssue(issues, "error", "control_output.invalid_display_payload", "Display JSON needs nonempty text (up to 512 characters) and an optional single-line title (up to 32 characters).", block);
     } catch {
       addIssue(issues, "error", "control_output.invalid_custom_body", "Custom output body must be valid JSON.", block);
     }

@@ -6,6 +6,8 @@ import type { DeviceFormFields } from "../../../src/features/data-sources/useDev
 
 function fields(overrides: Partial<DeviceFormFields> = {}): DeviceFormFields {
   return {
+    displayRotation: 0,
+    setDisplayRotation: vi.fn(),
     name: "My device",
     setName: vi.fn(),
     description: "",

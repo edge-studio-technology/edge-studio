@@ -52,6 +52,10 @@ describe("build-docker-compose.mjs", () => {
     assert.match(envExample, /HOST_AGENT_URL=http:\/\/host\.docker\.internal:38182/);
     assert.match(envExample, /^EDGE_STUDIO_DOCKER_SUBNET=172\.30\.0\.0\/24$/m);
     assert.match(envExample, /^EDGE_STUDIO_DOCKER_GATEWAY=172\.30\.0\.1$/m);
+    for (const capability of ["CAMERA", "GPIO", "SENSORS", "DISPLAYS"]) {
+      assert.match(compose, new RegExp(`ENABLE_${capability}: "false"`));
+    }
+    assert.doesNotMatch(compose, /DISPLAY_HELPER_(?:URL|TOKEN)/);
     assert.match(compose, /APP_SECRET: \$\{APP_SECRET:-\}/);
     assert.match(envExample, /^APP_SECRET=$/m);
     assert.doesNotMatch(compose, /dev-change-me/);

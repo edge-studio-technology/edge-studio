@@ -14,6 +14,7 @@ export function buildDeviceConfigInput(
     template,
   }: { editingSource?: DataSource | null; template?: DataSourceTemplate | null },
 ) {
+  if (fields.type === "spi-display") return { model: "pim576" as const, rotation: fields.displayRotation };
   const {
     type,
     url,

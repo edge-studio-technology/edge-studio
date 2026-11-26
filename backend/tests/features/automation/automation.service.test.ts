@@ -45,6 +45,7 @@ vi.mock("../../../src/features/data-sources/dataSources.service.js", () => ({
   parseHttpOutputConfig: (value: unknown) => value,
   parseBmeSensorConfig: (value: unknown) => value,
   parseBh1750SensorConfig: (value: unknown) => value,
+  parseSpiDisplayConfig: (value: unknown) => value,
   parseDeviceSystemDataConfig: (value: unknown) => value,
   readJsonApiSource: readJsonApiSourceMock,
   readDeviceSystemDataSource: readDeviceSystemDataSourceMock,
@@ -158,6 +159,35 @@ function makeRecipient() {
 function createSource(type: string, config: unknown, name = "Source") {
   return dataSourcesRepo.createDataSource({ name, type, config });
 }
+
+describe("PIM576 custom-variable workflow", () => {
+  it("interpolates its own variable and sends it through the real display provider with durable output history", async () => {
+    const env = (await import("../../../src/config/env.js")).env;
+    const saved = { enabled: env.displaysEnabled, token: env.displayHelperToken };
+    env.displaysEnabled = true;
+    env.displayHelperToken = "display-token";
+    const fetch = vi.fn().mockResolvedValue(new Response('{}'));
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const source = dataSourcesRepo.createDataSource({ name: "Screen", type: "spi-display", config: { model: "pim576", rotation: 0 } });
+      const workflow = makeWorkflow([
+        { type: "manual_start", config: {} },
+        { type: "set_variable", config: { variableName: "message", variableSource: "custom_json", valueJsonText: '"Hello screen"' } },
+        { type: "control_output", config: { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: '{"text":"{{message}}"}' } },
+      ]);
+      const result = await service.runAutomationWorkflow(workflow.id);
+      assert.equal(result.workflow.lastError, null);
+      assert.deepEqual(JSON.parse(fetch.mock.calls[0][1].body).content, { title: "", text: "Hello screen" });
+      const block = db.prepare("SELECT output_json FROM automation_block_runs WHERE workflow_id = ? AND block_type = 'control_output'").get(workflow.id) as { output_json: string };
+      assert.match(block.output_json, /Hello screen/);
+      assert.equal(readJsonApiSourceMock.mock.calls.length, 0);
+    } finally {
+      env.displaysEnabled = saved.enabled;
+      env.displayHelperToken = saved.token;
+      vi.unstubAllGlobals();
+    }
+  });
+});
 
 describe("persisted change-threshold workflows", () => {
   function changeWorkflow(stopLater = false) {

@@ -23,6 +23,7 @@ import {
   serializeDataSource,
 } from "../data-sources/dataSources.service.js";
 import { readBh1750SensorSource, readBmeSensorSource } from "../data-sources/sensorHelper.service.js";
+import { displayText } from "../data-sources/displayOutput.service.js";
 import {
   createDataSourceRead,
   dataSourceReference,
@@ -1130,7 +1131,12 @@ async function controlOutput(
   if (!target) throw new Error("Control output target was not found");
 
   let result: unknown = null;
-  if (target.type === "gpio-output") {
+  if (target.type === "spi-display") {
+    if (config.action !== "display_text") throw new Error("SPI display action must be display_text");
+    if (config.bodyMode !== "custom") throw new Error("SPI display requires a custom JSON text payload");
+    const payload = await outputPayload(config, context);
+    result = await displayText({ targetId: target.id, payload: payload.body });
+  } else if (target.type === "gpio-output") {
     result = await pulseGpioOutput({
       targetId: config.targetId,
       durationMs: Number(config.durationMs ?? 0),

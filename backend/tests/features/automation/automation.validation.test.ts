@@ -405,6 +405,25 @@ describe("validateAutomationDraft — block references", () => {
 });
 
 describe("validateAutomationDraft — hardware dependencies", () => {
+  it("validates display JSON/action and the opt-in helper before execution", async () => {
+    getDataSourceMock.mockReturnValue({ id: "lcd", type: "spi-display", config: '{"model":"pim576","rotation":0}' });
+    const displayBlock = block({ clientId: "display", type: "control_output", config: { targetId: "lcd", action: "display_text", bodyMode: "custom", bodyTemplateText: '{"text":"Hello"}' } });
+    env.displaysEnabled = false;
+    expectError(await validation.validateAutomationDraft([manualStart(), displayBlock]), "displays.disabled");
+    const token = env.displayHelperToken;
+    env.displaysEnabled = true;
+    env.displayHelperToken = "test-token";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"available":true,"supportedModels":["pim576"]}')));
+    try {
+      assert.equal((await validation.validateAutomationDraft([manualStart(), displayBlock])).errors.length, 0);
+      expectError(await validation.validateAutomationDraft([manualStart(), { ...displayBlock, config: { ...displayBlock.config, action: "pulse" } }]), "control_output.invalid_display_action");
+      expectError(await validation.validateAutomationDraft([manualStart(), { ...displayBlock, config: { ...displayBlock.config, bodyTemplateText: '{}' } }]), "control_output.invalid_display_payload");
+    } finally {
+      env.displaysEnabled = false;
+      env.displayHelperToken = token;
+      vi.unstubAllGlobals();
+    }
+  });
   it.each([
     [{ enabled: false, available: false }, "sensors.disabled"],
     [{ enabled: true, available: true, supportedSensors: ["bme280"] }, "sensors.unsupported_model"],
