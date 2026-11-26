@@ -37,7 +37,7 @@ class DisplayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "too wide"):
             helper.render_text("W" * 32, "Text")
 
-    def test_text_write_recovers_cached_controller_and_spi_state_without_reallocating_gpio(self):
+    def test_text_write_restores_spi_settings_without_resetting_the_panel(self):
         display = helper.DisplayHelper()
         panel = self.driver.ST7789.return_value
         display.display = panel
@@ -48,8 +48,8 @@ class DisplayTests(unittest.TestCase):
         display.update({"config": {"model": "pim576"}, "content": {"text": "Recovered"}})
 
         self.assertEqual((panel._spi.mode, panel._spi.lsbfirst, panel._spi.max_speed_hz), (0, False, 16000000))
-        panel._init.assert_called_once_with()
-        panel.set_backlight.assert_called_once_with(True)
+        panel._init.assert_not_called()
+        panel.set_backlight.assert_not_called()
         panel.display.assert_called_once()
         self.driver.ST7789.assert_not_called()
 
@@ -62,9 +62,10 @@ class DisplayTests(unittest.TestCase):
             self.assertEqual(result["rotation"], rotation)
         self.driver.ST7789.assert_called_once_with(port=0, cs=0, dc=25, backlight=24, width=240, height=240, rotation=0, spi_speed_hz=16000000, offset_left=0, offset_top=0)
         self.assertEqual(self.driver.ST7789.return_value.display.call_count, 4)
-        self.assertEqual(self.driver.ST7789.return_value._init.call_count, 3)
+        self.driver.ST7789.return_value._init.assert_not_called()
+        self.driver.ST7789.return_value.set_backlight.assert_not_called()
         display.close()
-        self.assertEqual([call.args[0] for call in self.driver.ST7789.return_value.set_backlight.call_args_list], [True, True, True, False])
+        self.driver.ST7789.return_value.set_backlight.assert_called_once_with(False)
 
     def test_invalid_requests_do_not_initialize_or_write_hardware(self):
         display = helper.DisplayHelper()
@@ -85,9 +86,21 @@ class DisplayTests(unittest.TestCase):
             self.assertIn("Repair", helper.DisplayHelper().capabilities()["reason"])
 
     def test_hardware_failure_does_not_become_a_successful_update(self):
-        self.driver.ST7789.return_value.display.side_effect = OSError("SPI failed")
+        display = helper.DisplayHelper()
+        panel = self.driver.ST7789.return_value
+        panel.display.side_effect = [OSError("SPI failed"), None, None]
+        request = {"config": {"model": "pim576"}, "content": {"text": "Hi"}}
         with self.assertRaisesRegex(OSError, "SPI failed"):
-            helper.DisplayHelper().update({"config": {"model": "pim576"}, "content": {"text": "Hi"}})
+            display.update(request)
+        panel._init.assert_not_called()
+        self.assertEqual(panel.display.call_count, 1)
+
+        display.update(request)
+        self.assertEqual([call[0] for call in panel.method_calls], ["display", "_init", "display"])
+        display.update(request)
+        panel._init.assert_called_once_with()
+        panel.set_backlight.assert_not_called()
+        self.driver.ST7789.assert_called_once()
 
     def test_rotation_is_applied_to_the_image_without_reallocating_gpio(self):
         original = Image.new("RGB", (240, 240), "black")

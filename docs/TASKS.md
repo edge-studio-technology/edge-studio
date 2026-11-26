@@ -51,6 +51,8 @@
 
 ### Hardware support
 
+- [ ] Verify the PIM576 frame transition on the physical panel by alternating a sensor reading and an updating message. Confirm the panel stays on during both transitions.
+
 - [ ] Run manual Pi retry validation for repeated Enable/Disable/Repair of Camera, GPIO, I2C sensors, and local MQTT, including retry after a failed prerequisite or partial action.
 - [ ] Decide whether host-agent `.env` writes should reject non-allowlisted keys at the helper boundary (callers pass fixed keys today).
 - [ ] Decide on host-agent follow-ups: async jobs for long capability actions, binding to localhost behind a proxy vs. the Docker gateway, an app-triggered reboot for `needs_reboot`, and re-auth for hardware enable/disable.

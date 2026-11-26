@@ -67,6 +67,7 @@ class DisplayHelper:
     def __init__(self):
         self.lock = threading.Lock()
         self.display = None
+        self.needs_reinit = False
 
     def capabilities(self):
         try:
@@ -83,14 +84,18 @@ class DisplayHelper:
             self.display = st7789.ST7789(port=0, cs=0, dc=25, backlight=24,
                                         width=240, height=240, rotation=0,
                                         spi_speed_hz=16000000, offset_left=0, offset_top=0)
-        else:
-            # ST7789 1.0.1 exposes these attributes; restore state after other SPI users.
+        try:
+            # Restore SPI settings before each frame. See ADR 0019 for controller recovery.
             self.display._spi.mode = 0
             self.display._spi.lsbfirst = False
             self.display._spi.max_speed_hz = 16000000
-            self.display._init()
-            self.display.set_backlight(True)
-        self.display.display(image)
+            if self.needs_reinit:
+                self.display._init()
+            self.display.display(image)
+        except OSError:
+            self.needs_reinit = True
+            raise
+        self.needs_reinit = False
 
     def update(self, payload):
         rotation, title, text = validate_display(payload)

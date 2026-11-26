@@ -24,7 +24,7 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
   gets no `/dev/i2c-*` or camera device and no native I2C dependency. GPIO input is the exception:
   explicit `/dev/gpiochip0` access with `gpiomon`, input-only.
 - **BH1750 measurements use raw I2C in the existing sensor helper.** Enable/repair installs `smbus2` in the existing managed virtualenv. The helper powers on/resets the chip, sets standard MTreg 69 (`0x42`, `0x65`), requests one-shot high resolution (`0x20`), waits the documented worst-case 180 ms, and reads exactly two bytes without sending a register byte. It converts the big-endian count to lux by dividing by 1.2. These values come from the [ROHM BH1750FVI datasheet linked by Adafruit](https://www.mouser.com/datasheet/2/348/bh1750fvi-e-186247.pdf); no physical timing claim is made. A helper-local lock serializes BH1750 requests so overlapping manual/workflow reads cannot restart each other's conversions. Only bus/address are operator settings; fixed mode avoids a range/calibration UI for the initial lux-reading scope. The helper reports model support only when `smbus2` imports, and callers warn when an older helper lacks it.
-- **SPI display output stays in a dedicated opt-in helper.** PIM576 title/text rendering uses a hash-locked CPython 3.13/Debian 13 aarch64 dependency set, including Pillow and Pimoroni's `st7789==1.0.1` driver, in a retained virtualenv. The helper uses one fixed SPI0 CE0/DC GPIO25/BL GPIO24 layout with only rotation editable. It restores the pinned driver's controller and SPI state before repeated writes because another SPI consumer or controller reset can invalidate retained state without invalidating the Python object. This keeps SPI/GPIO dependencies outside the non-root backend, avoids arbitrary pin/command or file/URL rendering endpoints, and reuses the workflow's existing output budget and variable interpolation. The helper binds to the configured Docker gateway and requires its own token. Fixed white-on-black text, 16 MHz SPI, zero offsets and a 20-pixel font keep the initial scope small; panel geometry and Debian GPIO compatibility are physically verified only for the documented Pi 4/Debian 13 setup. Initial adoption requires installer refresh because an older agent's fixed artifact allowlist cannot extract newly added helper files; subsequent artifacts include them. No signature/allowlist boundary is weakened to bypass that transition.
+- **SPI display output stays in a dedicated opt-in helper.** PIM576 title/text rendering uses a hash-locked CPython 3.13/Debian 13 aarch64 dependency set, including Pillow and Pimoroni's `st7789==1.0.1` driver, in a retained virtualenv. The helper uses one fixed SPI0 CE0/DC GPIO25/BL GPIO24 layout with only rotation editable. It initializes the controller at driver construction and restores bus settings before each frame. A reported SPI I/O failure preserves the error on that request and reinitializes the retained controller before the next frame. This keeps SPI/GPIO dependencies outside the non-root backend, avoids arbitrary pin/command or file/URL rendering endpoints, and reuses the workflow's existing output budget and variable interpolation. The helper binds to the configured Docker gateway and requires its own token. Fixed white-on-black text, 16 MHz SPI, zero offsets and a 20-pixel font keep the initial scope small; panel geometry and Debian GPIO compatibility are physically verified only for the documented Pi 4/Debian 13 setup. Initial adoption requires installer refresh because an older agent's fixed artifact allowlist cannot extract newly added helper files; subsequent artifacts include them. No signature/allowlist boundary is weakened to bypass that transition.
 - **A root host agent for enabling hardware after install.** `install.sh` always installs
   `edge-studio-host-agent` (systemd, Python stdlib), with `HOST_AGENT_URL`/`HOST_AGENT_TOKEN` passed
   only to the backend. The backend reaches it through admin-gated `/api/host-capabilities` routes.
@@ -50,6 +50,8 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
 
 ## Alternatives considered
 
+- **Reset the LCD controller before every frame.** This recovered a silently reset controller on the next write. The pinned driver's reset sequence blanks the panel and enables it again before sending the new pixels, so normal updates can briefly expose the previous frame.
+
 - **Mount `/dev/i2c-1` into the backend with a native Node I2C library.** Simpler at first, but
   fragile native builds on ARM/Docker and hardware access inside the app container.
 - **Use SMBus register-block reads for BH1750.** They send an extra command/register byte; BH1750 expects a raw two-byte I2C read after conversion. `smbus2.i2c_rdwr` provides that transaction without a new hardware service.
@@ -67,6 +69,8 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
 
 ## Consequences
 
+- The SPI write path cannot detect a silent LCD power loss when transfers still succeed. Use **Repair** to restart the display helper and initialize the controller on the next write.
+
 - Hardware support can be enabled and disabled from Devices → Hardware support without a terminal.
 - The agent holds root and has one OS-package action; its safety depends on keeping every action
   fixed-purpose. New hardware adds a capability, never a generic path.
@@ -76,6 +80,8 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
 - Uninstalling retained-data installations leaves configuration and operational metadata on disk; external data and unverified legacy firewall rules require manual review. There is no automatic secure erase.
 
 ## History
+
+- 2026-11-26: Removed per-frame LCD controller resets and retained reinitialization after reported SPI I/O errors.
 
 - 2026-11-26: Recorded scoped PIM576 panel geometry and Debian GPIO verification on Raspberry Pi 4/Debian 13.
 - 2026-11-20: Added explicit SPI prerequisite setup in Hardware support, with manual fallback and operator-managed reboot.

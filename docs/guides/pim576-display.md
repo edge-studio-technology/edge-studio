@@ -79,6 +79,8 @@ Review the workflow and run manually. Change the custom variable, save and run a
 
 ## Failure and privacy behaviour
 
+- Ordinary frame updates keep the display on. If the LCD loses power independently and stays blank after power returns, use **Devices → Hardware support → SPI displays → Repair**, then run **Test display**.
+
 - Disabled/missing support, malformed JSON, invalid rotation, missing text and GPIO ownership conflicts produce actionable validation or runtime errors.
 - The helper serializes hardware writes and reuses its GPIO/SPI handle. It does not run arbitrary commands, retrieve URLs, read image/font paths from requests, or render during configuration preview.
 - Workflow runs record display text/results and structured failures through the existing output block path. The triggering sensor's health is not overwritten by a display failure. Existing workflow output budgets still apply.

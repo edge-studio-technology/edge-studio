@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Removed the PIM576 controller reset from routine frame writes after a workflow showed the previous frame reappearing between updates. All 8 display-helper tests passed with Pillow 12.0.0 and mocked SPI/GPIO. A physical check of the alternating frames is still pending.
+
 - Added title and multiline text fields with inline help and field errors for LCD workflows. Existing saved content opens in the new editor. Focused frontend and backend tests passed (372 total), along with all three package builds and Compose configuration validation. Runtime tests verified the payload sent to a mocked display helper.
 
 - PIM576 PR #198 was updated through upstream dev `28b98e3`, with both the PIM576 and numeric-threshold test suites retained in the only merge conflict. Review added the Docker-subnet display firewall rule and hard-disabled unsupported displays in the standalone release Compose. Local lint/docs, typechecks, backend/frontend builds, Docker image builds, 38 host-agent tests, 8 real-Pillow display tests and affected automation tests passed; Windows-only root script fixtures retain their documented CRLF/path failures. Fresh Linux CI passed at exact head `54b8ccc2baa135d1ebca323f044ddd809525519a`.
