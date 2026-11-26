@@ -14,6 +14,7 @@ export function buildDeviceConfigInput(
     template,
   }: { editingSource?: DataSource | null; template?: DataSourceTemplate | null },
 ) {
+  if (fields.type === "spi-display") return { model: "pim576" as const, rotation: fields.displayRotation };
   const {
     type,
     url,
@@ -86,6 +87,8 @@ export function buildDeviceConfigInput(
       bus: Number(bmeBus),
       address: bmeAddress,
     };
+  if (type === "bh1750-sensor")
+    return { sensor: "bh1750" as const, bus: Number(bmeBus), address: bmeAddress };
   if (type === "device-system-data")
     return {
       includeSpecs: true,

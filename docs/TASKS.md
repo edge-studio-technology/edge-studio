@@ -24,11 +24,12 @@
 
 ### Follow-ups from finished work
 
-- [ ] Verify the Data Marketplace module end to end against a real marketplace and delivery service, and confirm the Maxima public key as `nodePublicKey` with the marketplace team (ADR 0044; `docs/qa/gaps.md` → Marketplace). Edge Studio has only `admin`, so marketplace `viewer`/`publisher` roles stay unreachable until a second local role exists.
+- [ ] Complete Data Marketplace PR [#189](https://github.com/edge-studio-technology/edge-studio/pull/189): require fresh Ubuntu CI for the upstream-`dev` merge head and the contributor's personal MIT-rights confirmation, then verify the module end to end against a real marketplace and delivery service and confirm the Maxima public key as `nodePublicKey` with the marketplace team (ADR 0045; `docs/qa/gaps.md` → Marketplace). Edge Studio has only `admin`, so marketplace `viewer`/`publisher` roles stay unreachable until a second local role exists.
+- [ ] By 2026-12-02 00:00 UTC, install a suitable picomatch patch and remove the approved development-only audit exception, or explicitly review its continued risk before expiry. Other advisories and production dependencies remain blocking — see [ADR 0044](./adr/0044-time-limit-the-development-picomatch-audit-exception.md).
 - [ ] Compare candidate Pi readiness/overview timings with the measured 2 s/4 s baseline once approved Docker diagnostic access is restored, and browser-check navigation, restart/resync/payment refresh, logout isolation and first-open settings/backups; wallet live-sync timing remains unmeasured.
 - [ ] Finish #861 Dashboard/status API disk warnings and generated proof-download cleanup; proof-linked camera protection is implemented and the user confirmed recommended Pi verification.
 - [ ] Retry local Docker image validation when the daemon is running; the user's successful Pi verification is recorded separately.
-- [ ] Verify the terminal uninstaller on a disposable Pi installation: keep-data removal/reinstall, confirmed internal-data deletion, custom helper ports/subnet, retained external data, cancellation, and partially removed installations.
+- [ ] Finish terminal-uninstaller Pi coverage: keep-data removal/reinstall with default helper ports/subnet now passes on the PIM576 test Pi; confirmed internal-data deletion, custom ports/subnet, retained external data, cancellation and partially removed installations remain open.
 - [ ] Verify the advanced installer on a Pi: fresh `curl | sudo bash -s -- --advanced`, an occupied default port, saved custom ports on rerun, and enabled camera/sensor/MQTT services.
 
 - [ ] Recapture the guided-tour screenshots with clean, Pi-like values and review the copy (#275; ADR 0027).
@@ -58,6 +59,7 @@
 
 ### Devices and automation
 
+- [ ] Finish BH1750 maintainer review in draft PR [#193](https://github.com/edge-studio-technology/edge-studio/pull/193) and confirm CI for its latest evidence commit. The contributor personally confirmed MIT rights and reported completion of the physical checklist; the saved screenshot, Pi 4 Model B Rev 1.4/Debian 13.6/aarch64 setup, matching tested commit and evidence limits are in [BH1750 verification status](./guides/bh1750-sensor.md#verification-status). Linux CI passed at integration commit 4058467; no merge or release is implied.
 - [ ] PIR motion sensor: verify a PIR on the Pi through the UI and a `gpio_event_start` workflow, add beginner templates (motion → record, camera capture, stamp), and document defaults that change during hardware testing.
 - [ ] ESP32 MQTT boards: verify an ESP32 publishing JSON to the Pi broker is recorded by an MQTT workflow; add DHT22 (after hardware verification), button, analog, and PIR-over-MQTT templates; add first-message troubleshooting; document broker auth limitations.
 - [ ] Workflow templates for common GPIO, HTTP, webhook, schedule, output, MQTT, and Integritas flows.
@@ -76,6 +78,18 @@
 - [ ] Sanity-check two catalog exclusions added beyond the Minima RPC console plan's named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material).
 
 ## Done
+
+- [x] Implemented and physically verified PIM576 output through a narrow opt-in SPI helper and the existing Control device block, with setup/editing, custom-variable workflow, rotations, repeated/concurrent writes, disable/re-enable and keep-data uninstall/reinstall on Pi 4/Debian 13/aarch64. Exact-head Linux CI and local application/build/Docker/Python checks passed, the contributor completed the MIT checkbox, and accessible photo/evidence are attached to ready PR #198. Documented Windows root-script and physical evidence limits remain visible.
+- [x] Recorded contributor-reported BH1750 physical success on Raspberry Pi 4 Model B Rev 1.4, Debian 13.6 (trixie)/aarch64 at implementation commit `e8fbe5329a218f5d9d43354a534f1bbf57d9a95d`, with a supplied 12.5-lux workflow preview at bus 1/address 0x23. Updated scoped evidence in the guide/catalog; individual test-case results and Linux CI remain separate.
+- [x] Implemented BH1750 lux reads through the existing I2C helper, backend/API/workflows, device setup/editing and in-app/operator guides. Full application coverage suites, lint/docs/Knip/typechecks, builds, application audits, Compose configuration and 37 Python tests passed; full check retains Windows root-script failures and Docker image build is blocked by the unavailable Linux daemon. Physical verification and publication remain separate follow-ups.
+- [x] Clarified AI-assisted PR handoff: contributors confirm their own MIT submission rights, relevant evidence belongs on the PR, and missing required items stay visible as draft follow-up. Updated contributor/review docs and mirrored skills; see SESSION for verification.
+
+- [x] Fixed piped uninstall confirmation by opening terminal input/output separately; real Linux pseudo-terminal reproduction, all 16 Linux uninstall regressions, Windows scripts wrapper, shell syntax and lint/docs checks passed. Typed deletion confirmation and missing-terminal refusal remain enforced; physical disposable-Pi uninstall validation remains open.
+- [x] Clarified the fork-to-Pi installation/update handoff in the quickstart, public entry points and mirrored contributor skill: expected pushed commit, matching fork/branch commands, installed commit/container/behaviour verification and subsequent revision installs. Three source-build regressions, docs/whitespace checks and three skill validations passed; no physical Pi trial was performed.
+
+- [x] Added the owner-approved GHSA-fc5q-39xc-vjpf exception for development-only picomatch 4.0.7, expiring 2026-12-02 00:00 UTC. Other advisories and production audits remain blocking. Verified 51 audit/docs/policy tests, lint, syntax/whitespace checks and all six real full/production app audits; normal PR CI remains required. Rationale is in ADR 0044; the completed implementation plan is retired.
+
+- [x] Simplified the AI contribution prompt and matching guide for users working in an open fork: concrete device-use example, optional documentation link and plain-language clarification when unsure. Documentation lint and whitespace checks passed; contributor/hardware trials remain open.
 
 - [x] Added a linked public hardware/device/workflow support catalog with prerequisites, setup links, current toolkit names, scoped verification evidence and contribution maintenance instructions. Source inventory, file/section links, documentation lint and whitespace checks passed. Physical compatibility and independent contributor trials remain separate.
 

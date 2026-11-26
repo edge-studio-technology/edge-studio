@@ -16,15 +16,15 @@ beforeAll(async () => {
 afterAll(() => teardown());
 
 describe("buildHistoryArchive", () => {
-  it("keeps historical relationships and payloads while removing configuration and secrets", () => {
+  it("keeps historical relationships, diagnostic settings and payloads without executable definitions or secrets", () => {
     db.prepare("INSERT INTO wallet_transactions (txpow_id, token_id, direction, amount, token_name, counterparty, time_millis, wallet_fingerprint, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .run("tx-1", "0x00", "in", "1", "Minima", "Mxrecipient", 1, "wallet-fingerprint", "2026-10-15T00:00:00.000Z");
     db.prepare("INSERT INTO automation_workflows (id, created_at, updated_at, name, enabled) VALUES (?, ?, ?, ?, ?)")
       .run("workflow-1", "2026-10-15T00:00:00.000Z", "2026-10-15T00:00:00.000Z", "Workflow", 1);
     db.prepare("INSERT INTO automation_runs (id, workflow_id, workflow_name, started_at, status, trigger_type, trigger_payload_json) VALUES (?, ?, ?, ?, ?, ?, ?)")
       .run("run-1", "workflow-1", "Workflow", "2026-10-15T00:00:00.000Z", "success", "webhook", JSON.stringify({ reading: 12, apiKey: "secret-key" }));
-    db.prepare("INSERT INTO automation_block_runs (id, run_id, order_index, block_type, block_label, started_at, status, output_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .run("block-1", "run-1", 0, "fetch", "Fetch", "2026-10-15T00:00:00.000Z", "success", JSON.stringify({ temperature: 21, password: "secret-password" }));
+    db.prepare("INSERT INTO automation_block_runs (id, run_id, order_index, block_type, block_label, started_at, status, output_json, config_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run("block-1", "run-1", 0, "fetch", "Fetch", "2026-10-15T00:00:00.000Z", "success", JSON.stringify({ temperature: 21, password: "secret-password" }), JSON.stringify({ sourceId: "source-1" }));
     db.prepare("INSERT INTO automation_inbox_items (id, workflow_name, run_id, title, format, content_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
       .run("inbox-1", "Workflow", "run-1", "Preview", "json", JSON.stringify({ value: "visible", webhookToken: "secret-token" }), "2026-10-15T00:00:00.000Z");
     db.prepare("INSERT INTO integritas_proofs (id, created_at, updated_at, hash, proof_status, proof_payload, verification_report_file) VALUES (?, ?, ?, ?, ?, ?, ?)")
@@ -44,6 +44,7 @@ describe("buildHistoryArchive", () => {
     assert.equal(archive.records.dataSourceReads[0]?.source_reference, null);
     assert.equal(archive.records.workflowRuns[0]?.trigger_payload.apiKey, "[redacted]");
     assert.equal(archive.records.workflowBlockRuns[0]?.output.password, "[redacted]");
+    assert.deepEqual(archive.records.workflowBlockRuns[0]?.config, { sourceId: "source-1" });
     assert.equal(archive.records.workflowInboxItems[0]?.content.webhookToken, "[redacted]");
     assert.equal(archive.records.dataSourceReads[0]?.preview.authorization, "[redacted]");
     assert.equal(archive.records.integritasProofs[0]?.proof_payload.apiKey, "[redacted]");

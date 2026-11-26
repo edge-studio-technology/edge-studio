@@ -34,28 +34,37 @@ For a large change, new dependency, driver or architectural change, discuss the 
 1. Read the [quickstart](docs/guides/contributor-quickstart.md) and [architecture map](docs/guides/contributor-architecture.md). Work on a branch in your own fork from current upstream `dev`.
 2. Read the relevant [project rules](AGENTS.md#project-rules). Reuse existing patterns and services; keep changes focused on the agreed problem.
 3. Complete the whole user journey: validation, runtime behaviour, configuration screens, setup guide, saved-data compatibility and relevant tests. Hardware tests must name the actual model/OS and results. Update the [support catalog](docs/guides/supported-capabilities.md) when capabilities change, with accurate requirements and verification evidence.
-4. Run the checks described in the quickstart and relevant recipe. Record failed or unrun checks honestly. Mocked tests do not verify physical hardware. AI-written code needs the same evidence and review.
+4. Run the checks described in the quickstart and relevant recipe. For hardware changes, follow [Test your fork on a Raspberry Pi](docs/guides/contributor-quickstart.md#fork-source-build-on-a-disposable-pi), including the expected-commit and container checks. Record failed or unrun checks honestly. Mocked tests do not verify physical hardware. AI-written code needs the same evidence and review.
 5. Update the affected operator guides and configuration documentation. Release-please prepares version bumps and release notes; do not manually bump the app version or add branch changelog sections. Public contributors do not need internal OpenProject access or internal ticket identifiers. PRs may link public issues.
 6. Push your branch to your fork and open a PR **against this repository's `dev` branch**. Use a Conventional title such as `feat(devices): support a new sensor` or `fix(workflows): handle an unavailable device`. Use the PR template and explain the problem, resulting behaviour, evidence and remaining limitations. Maintainers squash-merge contributions using that title. See the [release guide](docs/guides/releases.md) for types and release handling.
+
+Before submitting, review every unfinished PR-template item with your AI assistant. It should ask you to confirm that you have the right to submit the contribution under the MIT terms before you check that statement yourself. Attach relevant test results and screenshots to the PR so reviewers can see the evidence there; review screenshots for private information first. If evidence or a required confirmation is missing, say so clearly and leave the PR as a draft until it is ready. Never invent evidence or let an assistant attest to your rights for you.
 
 Reviewers may request changes, ask for hardware evidence, defer or decline a change. Passing CI does not automatically approve it. Accepted changes are released through the normal `dev` → `main` process; a merge is not an immediate deployment. Installing a fork is an unofficial source build with its own maintenance/update obligations.
 
 ### Start with an AI assistant
 
-After cloning your fork, open it in your AI coding tool and copy the prompt below. Replace the bracketed values with your device details and desired behaviour. See the [AI contribution guide](docs/guides/contributor-ai.md) for loading the skill when your tool does not discover it automatically.
+After cloning your fork, open it in your AI coding tool and copy the prompt below. Replace the bracketed values with your device details and what you want to use it for. For example: “Read temperature and humidity and use those readings in workflows.” You do not need to know which drivers or code changes that requires. If you are unsure, write: “Help me understand what this device could do in Edge Studio before we implement support.” See the [AI contribution guide](docs/guides/contributor-ai.md) for loading the skill when your tool does not discover it automatically.
 
 ```text
-Use my Edge Studio checkout at [local checkout path]. Read AGENTS.md,
-CONTRIBUTING.md and .agents/skills/edge-studio-contributor/SKILL.md
-from this checkout before making changes.
+Work in the Edge Studio repository currently open.
 
-I want to add support for [exact device model], using [manufacturer
-documentation URL]. The expected behaviour is [what the user should
-be able to do].
+Before making changes, read:
+- AGENTS.md
+- CONTRIBUTING.md
+- .agents/skills/edge-studio-contributor/SKILL.md
+
+Help me add support for this device:
+[device name/model and manufacturer documentation link, if available]
+
+I want to use it to:
+[for example: read temperature and humidity and use those readings in workflows]
+
+If you need more information about the device, its connection or
+how I want to use it, ask me. Explain the choices in plain language.
 
 Check whether an existing protocol or integration can be reused. Identify
 a complete existing example and propose the smallest complete change.
-Ask about missing device details or unclear scope before implementing.
 
 Follow the contribution guides and relevant project rules. Work on a
 topic branch in my fork based on upstream dev. Implement the agreed
@@ -63,6 +72,10 @@ scope across backend, device setup/editing, setup guides and workflows
 where needed. Update documentation and run the relevant checks.
 Report actual results, failed or unrun checks, and anything requiring
 physical hardware verification.
+
+For a Pi test, use the quickstart's installation handoff checklist.
+Give me commands for my actual fork and branch, the expected pushed
+commit, and the steps to verify it on the Pi and install later changes.
 
 Review the diff and prepare a Conventional PR title and description
 using the repository template, targeting upstream dev. Explain the

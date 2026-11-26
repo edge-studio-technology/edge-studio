@@ -97,6 +97,80 @@ describe("runMigrations — data_source_reads.source_url scrub", () => {
 });
 
 describe("runMigrations — retention and budget schema", () => {
+  it("adds nullable diagnostic configuration to a pre-upgrade database without changing history", () => {
+    db.exec(`
+      ALTER TABLE automation_block_runs DROP COLUMN config_json;
+      INSERT INTO automation_workflows (id, created_at, updated_at, name, enabled)
+        VALUES ('compact-log-test', '2026-01-01', '2026-01-01', 'Saved flow', 0);
+      INSERT INTO automation_blocks (id, workflow_id, created_at, updated_at, type, enabled, order_index, config_json)
+        VALUES ('compact-block', 'compact-log-test', '2026-01-01', '2026-01-01', 'wait', 1, 0, '{}');
+      INSERT INTO automation_runs (id, workflow_id, workflow_name, started_at, status, trigger_type)
+        VALUES ('old-run', 'compact-log-test', 'Saved flow', '2026-01-01', 'success', 'manual');
+      INSERT INTO automation_block_runs (id, run_id, workflow_id, block_id, order_index, block_type, block_label, started_at, status)
+        VALUES ('old-block-run', 'old-run', 'compact-log-test', 'compact-block', 0, 'wait', 'Wait', '2026-01-01', 'success');
+      INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES ('old-run', 'compact-log-test', 1);
+      INSERT INTO automation_inbox_items (id, workflow_id, workflow_name, run_id, title, format, content_json, created_at)
+        VALUES ('retained-inbox', 'compact-log-test', 'Saved flow', 'old-run', 'Preview', 'text', '"hello"', '2026-01-01');
+    `);
+    insertRead("compact-retained-read", null, "device-system-data:local");
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT id FROM automation_runs WHERE id = 'old-run'").get(), { id: "old-run" });
+    assert.deepEqual(db.prepare("SELECT id, config_json FROM automation_block_runs WHERE id = 'old-block-run'").get(), {
+      id: "old-block-run",
+      config_json: null,
+    });
+    assert.deepEqual(db.prepare("SELECT id FROM automation_blocks WHERE id = 'compact-block'").get(), { id: "compact-block" });
+    assert.deepEqual(db.prepare("SELECT run_id, content_json FROM automation_inbox_items WHERE id = 'retained-inbox'").get(), { run_id: "old-run", content_json: '"hello"' });
+    assert.ok(db.prepare("SELECT id FROM data_source_reads WHERE id = 'compact-retained-read'").get());
+    assert.ok(db.prepare("SELECT run_id FROM automation_workflow_budget_events WHERE run_id = 'old-run'").get());
+
+    db.prepare("UPDATE automation_block_runs SET config_json = ? WHERE id = 'old-block-run'")
+      .run('{"durationMs":5}');
+    db.pragma("foreign_keys = OFF");
+    db.exec(`
+      CREATE TABLE automation_runs_backup AS SELECT * FROM automation_runs;
+      CREATE TABLE automation_block_runs_backup AS SELECT * FROM automation_block_runs;
+      DROP TABLE automation_block_runs;
+      DROP TABLE automation_runs;
+      CREATE TABLE automation_runs (
+        id TEXT PRIMARY KEY, workflow_id TEXT NOT NULL, workflow_name TEXT NOT NULL,
+        started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, trigger_type TEXT NOT NULL,
+        trigger_source_id TEXT, trigger_payload_json TEXT, duration_ms INTEGER,
+        block_count INTEGER NOT NULL DEFAULT 0, error TEXT,
+        FOREIGN KEY (workflow_id) REFERENCES automation_workflows(id) ON DELETE CASCADE
+      );
+      CREATE TABLE automation_block_runs (
+        id TEXT PRIMARY KEY, run_id TEXT NOT NULL, workflow_id TEXT NOT NULL, block_id TEXT,
+        order_index INTEGER NOT NULL, block_type TEXT NOT NULL, block_label TEXT NOT NULL,
+        started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, duration_ms INTEGER,
+        input_json TEXT, config_json TEXT, output_json TEXT, error TEXT,
+        FOREIGN KEY (run_id) REFERENCES automation_runs(id) ON DELETE CASCADE,
+        FOREIGN KEY (workflow_id) REFERENCES automation_workflows(id) ON DELETE CASCADE,
+        FOREIGN KEY (block_id) REFERENCES automation_blocks(id) ON DELETE SET NULL
+      );
+      INSERT INTO automation_runs SELECT * FROM automation_runs_backup;
+      INSERT INTO automation_block_runs (
+        id, run_id, workflow_id, block_id, order_index, block_type, block_label, started_at,
+        finished_at, status, duration_ms, input_json, config_json, output_json, error
+      ) SELECT
+        id, run_id, workflow_id, block_id, order_index, block_type, block_label, started_at,
+        finished_at, status, duration_ms, input_json, config_json, output_json, error
+      FROM automation_block_runs_backup;
+      DROP TABLE automation_block_runs_backup;
+      DROP TABLE automation_runs_backup;
+    `);
+    db.pragma("foreign_keys = ON");
+    runMigrations();
+    assert.deepEqual(
+      db.prepare("SELECT workflow_id, config_json FROM automation_block_runs WHERE id = 'old-block-run'").get(),
+      { workflow_id: "compact-log-test", config_json: '{"durationMs":5}' },
+    );
+    db.exec(`INSERT INTO automation_runs (id, workflow_name, started_at, status, trigger_type) VALUES ('new-run', 'Saved flow', '2026-01-02', 'success', 'manual');`);
+    runMigrations();
+    assert.ok(db.prepare("SELECT id FROM automation_runs WHERE id = 'new-run'").get());
+    assert.deepEqual(db.pragma("foreign_key_check"), []);
+  });
+
   it("creates the workflow budget ledger with a unique run id and the retention/budget indexes", () => {
     const columns = db.prepare("PRAGMA table_info(automation_workflow_budget_events)").all() as { name: string; pk: number }[];
     assert.deepEqual(columns.map((column) => column.name).sort(), ["consumed_at", "run_id", "workflow_id"]);

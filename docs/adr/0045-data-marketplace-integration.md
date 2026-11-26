@@ -1,4 +1,4 @@
-# 0044: Data Marketplace Integration Through a Backend-Held Installation Key
+# 0045: Data Marketplace Integration Through a Backend-Held Installation Key
 
 **Status:** Accepted
 **Date:** 2026-11-18

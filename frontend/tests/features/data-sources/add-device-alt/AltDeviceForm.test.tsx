@@ -7,6 +7,8 @@ import type { DataSourceTemplate } from "../../../../src/features/data-sources/d
 
 function fields(overrides: Partial<DeviceFormFields> = {}): DeviceFormFields {
   return {
+    displayRotation: 0,
+    setDisplayRotation: vi.fn(),
     name: "My device",
     setName: vi.fn(),
     description: "",

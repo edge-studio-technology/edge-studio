@@ -1,7 +1,8 @@
 # Data Source Rules
 
-- Supported V1 input/capture source types are HTTP JSON Source fetches, Device System Data reads, BME280/BME680 Environmental Sensor reads, Webhook Receiver JSON receives, MQTT Subscriber JSON subscriptions, Raspberry Pi GPIO Input Pin events, and Raspberry Pi Camera captures.
-- Supported V1 output target types are GPIO LED pulses, HTTP JSON Target requests, and MQTT Publisher JSON publishes.
+- Supported V1 input/capture source types are HTTP JSON Source fetches, Device System Data reads, BME280/BME680 Environmental Sensor reads, BH1750 Light Sensor lux reads, Webhook Receiver JSON receives, MQTT Subscriber JSON subscriptions, Raspberry Pi GPIO Input Pin events, and Raspberry Pi Camera captures.
+- Supported V1 output target types are GPIO LED pulses, HTTP JSON Target requests, MQTT Publisher JSON publishes, and PIM576 SPI LCD text updates.
+- PIM576 is output-only through Control device with display_text and a custom JSON title/text payload. It requires the opt-in displays helper, fixed SPI0 CE0/DC GPIO25/BL GPIO24 wiring, and explicit physical verification. Keep the starter workflow sensor-independent with a custom variable; preserve GPIO pin ownership checks.
 - Skip file-source and manual-upload source types unless explicitly requested.
 - Store the latest JSON preview and latest hash on the data source.
 - Push-source reads (webhook, MQTT, GPIO) store `dataSourceReference(id)` (`data-source:<id>`) as `source_url`, never a webhook URL or broker URL, since those carry credentials. Webhook-token and URL-userinfo redaction lives in `shared/redact.ts`; do not log or persist raw webhook paths elsewhere.
@@ -12,6 +13,7 @@
 - MQTT sources define a broker URL/topic and expect JSON payloads. The backend only subscribes while an enabled Automation workflow exists for the MQTT source.
 - GPIO input sources define a BCM pin, edge, pull resistor, debounce, and active state. They are input-only and only watch pins while an enabled Automation workflow exists for the source.
 - BME sensor sources define sensor model, I2C bus, and I2C address. They are readable fetch sources, not event sources, and require the opt-in host-side sensor helper.
+- BH1750 sources use the same opt-in sensor helper with smbus2, bus 0–10 and address 0x23 or 0x5c. They are readable lux sources, not light/dark event sources; physical verification is recorded separately from driver capability.
 - Device System Data sources read local OS/device facts from the backend container only. Do not collect public-IP geolocation, GPS coordinates, Wi-Fi SSIDs/BSSIDs, MAC addresses, CPU serial numbers, or other stable hardware identifiers by default.
 - Raspberry Pi Camera capture requires explicit camera device access and must stay opt-in because it grants host camera access and can record private images/video.
 - The optional local MQTT broker is a local service, not a configured device. Keep it off by default and document LAN exposure when enabling it.

@@ -9,12 +9,16 @@ import { DataSourcesPage } from "../../src/pages/DataSourcesPage";
 const listDataSources = vi.fn();
 const getDataSourceCapabilities = vi.fn();
 const getHostCapabilities = vi.fn();
+const setupDisplayPrerequisites = vi.fn();
+const enableDisplaySupport = vi.fn();
 
 vi.mock("../../src/features/data-sources/dataSourcesApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/features/data-sources/dataSourcesApi")>()),
   listDataSources: (...args: unknown[]) => listDataSources(...args),
   getDataSourceCapabilities: (...args: unknown[]) => getDataSourceCapabilities(...args),
   getHostCapabilities: (...args: unknown[]) => getHostCapabilities(...args),
+  setupDisplayPrerequisites: (...args: unknown[]) => setupDisplayPrerequisites(...args),
+  enableDisplaySupport: (...args: unknown[]) => enableDisplaySupport(...args),
 }));
 
 const capabilities: DataSourceCapabilities = {
@@ -47,10 +51,26 @@ function renderPage() {
 
 describe("DataSourcesPage", () => {
   beforeEach(() => {
+    setupDisplayPrerequisites.mockReset();
+    enableDisplaySupport.mockReset();
     listDataSources.mockReset();
     getDataSourceCapabilities.mockReset();
     getHostCapabilities.mockReset();
     getHostCapabilities.mockResolvedValue({ items: [] });
+  });
+
+  it.each([true, false])("runs SPI prerequisite setup and reports rebootRequired=%s without enabling automatically", async (rebootRequired) => {
+    listDataSources.mockResolvedValue({ items: [] });
+    getDataSourceCapabilities.mockResolvedValue(capabilities);
+    const display = { name: "displays", enabled: false, installed: false, available: false, state: "missing_prerequisites", reason: "Enable SPI" };
+    getHostCapabilities.mockResolvedValue({ items: [display] });
+    setupDisplayPrerequisites.mockResolvedValue({ capability: display, steps: [], rebootRequired });
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "SPI displays: Action required" }));
+    await userEvent.click(screen.getByRole("button", { name: "Automatic setup" }));
+    expect(await screen.findByText(rebootRequired ? "SPI setup applied, reboot required" : "SPI setup applied")).toBeInTheDocument();
+    expect(setupDisplayPrerequisites).toHaveBeenCalledOnce();
+    expect(enableDisplaySupport).not.toHaveBeenCalled();
   });
 
   it("shows loading without an error or empty state while the device list is pending", () => {

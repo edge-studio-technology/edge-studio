@@ -56,6 +56,14 @@ describe("workflowBlockSummaries: blockSummary", () => {
     expect(result.fields).toEqual([{ label: "Interval", value: "Every 5 minutes" }]);
   });
 
+  it("labels numeric change thresholds separately from ordinary compare values", () => {
+    const result = blockSummary(
+      { type: "if_payload_field_equals", config: { source: "trigger", fieldPath: "temperature", operator: "changed_by_at_least", value: 2 } },
+      emptyContext,
+    );
+    expect(result.fields).toContainEqual({ label: "Minimum change", value: "2" });
+  });
+
   it("gpio_event_start shows source, active-only, and cooldown", () => {
     const gpio = source({ id: "gpio-1", name: "PIR sensor", type: "gpio-input" });
     const result = blockSummary(

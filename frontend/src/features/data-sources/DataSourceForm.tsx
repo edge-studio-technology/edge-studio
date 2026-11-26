@@ -10,17 +10,21 @@ import type { DeviceFormFields } from "./useDeviceFormFields";
 export function isDataSourceFormValid(fields: DeviceFormFields) {
   const { type, name, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (!name) return false;
+  if (type === "spi-display") return [0, 90, 180, 270].includes(fields.displayRotation);
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
   if (type === "pi-camera")
     return Boolean(fields.cameraWidth && fields.cameraHeight && fields.cameraDurationMs);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
+  if (type === "bh1750-sensor") return /^\d+$/.test(fields.bmeBus) && Number(fields.bmeBus) <= 10 && (fields.bmeAddress === "0x23" || fields.bmeAddress === "0x5c");
   if (type === "device-system-data") return true;
   if (type === "webhook") return true;
   return Boolean(url);
 }
 
 export function DataSourceForm({
+  displayRotation,
+  setDisplayRotation,
   template,
   name,
   setName,
@@ -64,6 +68,8 @@ export function DataSourceForm({
   setMethod,
   submitLabel = "Add source",
 }: {
+  displayRotation: 0 | 90 | 180 | 270;
+  setDisplayRotation: (value: 0 | 90 | 180 | 270) => void;
   template: DataSourceTemplate | null;
   name: string;
   setName: (value: string) => void;
@@ -103,8 +109,8 @@ export function DataSourceForm({
   setCameraFps: (value: string) => void;
   bmeBus: string;
   setBmeBus: (value: string) => void;
-  bmeAddress: "0x76" | "0x77";
-  setBmeAddress: (value: "0x76" | "0x77") => void;
+  bmeAddress: NonNullable<DataSource["config"]["address"]>;
+  setBmeAddress: (value: NonNullable<DataSource["config"]["address"]>) => void;
   method: "GET" | "POST" | "PUT" | "PATCH";
   setMethod: (value: "GET" | "POST" | "PUT" | "PATCH") => void;
   submitLabel?: string;
@@ -320,10 +326,17 @@ export function DataSourceForm({
             on the Pi; Integritas stamps the media file hash.
           </MutedText>
         </>
-      ) : type === "bme-sensor" ? (
+      ) : type === "spi-display" ? (
+        <>
+          <SelectField label="Rotation" value={String(displayRotation)} onChange={(event) => setDisplayRotation(Number(event.target.value) as 0 | 90 | 180 | 270)} options={[0, 90, 180, 270].map((rotation) => ({ value: String(rotation), label: `${rotation}°` }))} />
+          <MutedText>PIM576 uses SPI0 CE0 with DC GPIO25 and backlight GPIO24. Use the setup guide for wiring; control its text from a workflow.</MutedText>
+        </>
+      ) : type === "bme-sensor" || type === "bh1750-sensor" ? (
         <>
           <InputField
             label="I2C bus"
+            description={type === "bh1750-sensor" ? "Use 1 for the Pi header. Enter a whole bus number from 0 to 10." : undefined}
+            error={type === "bh1750-sensor" && (!/^\d+$/.test(bmeBus) || Number(bmeBus) > 10) ? "Enter an I2C bus number from 0 to 10." : undefined}
             value={bmeBus}
             onChange={(event) => setBmeBus(event.target.value)}
             placeholder="1"
@@ -332,16 +345,19 @@ export function DataSourceForm({
           <SelectField
             label="I2C address"
             value={bmeAddress}
-            onChange={(event) => setBmeAddress(event.target.value as "0x76" | "0x77")}
-            options={[
+            onChange={(event) => setBmeAddress(event.target.value as NonNullable<DataSource["config"]["address"]>)}
+            options={type === "bh1750-sensor" ? [
+              { value: "0x23", label: "0x23 (default)" },
+              { value: "0x5c", label: "0x5c (ADDR high)" },
+            ] : [
               { value: "0x76", label: "0x76" },
               { value: "0x77", label: "0x77" },
             ]}
           />
           <MutedText>
-            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. BME680
+            {type === "bh1750-sensor" ? "BH1750 reads ambient light in lux. Wire VIN to 3.3V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2." : <>BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. BME680
             reads also include gas resistance. Wire VIN to 3.3V or 5V, GND to ground, SCL to
-            physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.
+            physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.</>}
           </MutedText>
         </>
       ) : type === "device-system-data" ? (

@@ -38,6 +38,7 @@ afterAll(() => {
 // matching. So a bare GET against each mounted router's prefix is enough to prove
 // that router sits behind the gate; it does not need to be a real endpoint.
 const protectedPrefixes = [
+  "/api/host-capabilities",
   "/api/auth",
   "/api/user",
   "/api/status",
@@ -64,11 +65,14 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/marketplace/publisher/listings"],
   ["patch", "/api/marketplace/publisher/listings/L-1"],
   ["post", "/api/marketplace/publisher/listings/L-1/transitions"],
-    ["get", "/api/auth/settings/session"],
-    ["post", "/api/auth/settings/session"],
-    ["get", "/api/retention/camera"],
-    ["post", "/api/retention/camera/preview"],
-    ["post", "/api/retention/camera"],
+  ["post", "/api/host-capabilities/displays/enable"],
+  ["post", "/api/host-capabilities/displays/disable"],
+  ["post", "/api/host-capabilities/displays/setup-prerequisites"],
+  ["get", "/api/auth/settings/session"],
+  ["post", "/api/auth/settings/session"],
+  ["get", "/api/retention/camera"],
+  ["post", "/api/retention/camera/preview"],
+  ["post", "/api/retention/camera"],
   ["get", "/api/retention/settings"],
   ["post", "/api/retention/settings/preview"],
   ["post", "/api/retention/settings"],

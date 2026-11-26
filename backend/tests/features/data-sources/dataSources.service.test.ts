@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it, vi } from "vitest";
 import {
   parseBmeSensorConfig,
+  parseBh1750SensorConfig,
   parseDataSourceConfig,
   parseDeviceSystemDataConfig,
   parseGpioInputConfig,
@@ -254,6 +255,19 @@ describe("parsePiCameraConfig", () => {
     assert.throws(() => parsePiCameraConfig({ height: 10 }), /config.height must be between 120 and 4320/);
     assert.throws(() => parsePiCameraConfig({ durationMs: 1 }), /config.durationMs must be between 100 and 300000/);
     assert.throws(() => parsePiCameraConfig({ fps: 0 }), /config.fps must be between 1 and 120/);
+  });
+});
+
+describe("parseBh1750SensorConfig", () => {
+  it("defaults to the Adafruit board address and accepts the alternate address", () => {
+    assert.deepEqual(parseDataSourceConfig("bh1750-sensor", {}), { sensor: "bh1750", bus: 1, address: "0x23" });
+    assert.deepEqual(parseBh1750SensorConfig({ bus: 0, address: "0x5c" }), { sensor: "bh1750", bus: 0, address: "0x5c" });
+  });
+
+  it("rejects unsupported models, addresses and invalid buses without fallback", () => {
+    assert.throws(() => parseBh1750SensorConfig({ sensor: "bme280" }), /config.sensor must be bh1750/);
+    for (const address of ["0x76", "0x24", "", 35]) assert.throws(() => parseBh1750SensorConfig({ address }), /config.address/);
+    for (const bus of [-1, 11, 1.5, "invalid", "", true]) assert.throws(() => parseBh1750SensorConfig({ bus }), /config.bus/);
   });
 });
 

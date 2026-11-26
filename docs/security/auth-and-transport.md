@@ -85,7 +85,7 @@ Controls (V1):
 - The delivery relay compares the secret in constant time and refuses every call while it is unset. The delivery service never holds the installation key.
 - The operator can rotate or revoke the installation key on the marketplace.
 
-Residual gap: the delivery relay is not rate-limited (a 256-bit secret is not brute-forceable, but calls still reach the marketplace); `.env` file permissions are not tightened by the installer; every Edge Studio user acts as marketplace `owner` because `admin` is the only local role. See [ADR 0044](../adr/0044-data-marketplace-integration.md).
+Residual gap: the delivery relay is not rate-limited (a 256-bit secret is not brute-forceable, but calls still reach the marketplace); `.env` file permissions are not tightened by the installer; every Edge Studio user acts as marketplace `owner` because `admin` is the only local role. See [ADR 0045](../adr/0045-data-marketplace-integration.md).
 
 Status: Mitigated for V1 single-admin use.
 

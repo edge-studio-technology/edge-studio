@@ -39,3 +39,11 @@ Paths without a prefix in the UI rows are under the frontend workflow folder; ba
 - [ ] Help/setup docs describe the feature and any unverified physical/service requirements honestly.
 
 When a device can use existing Fetch/Record/Output behaviour, document that path rather than inventing a new block per device model. Future Module Builder may expose package contributions, but no such runtime contract is required for a source PR today.
+
+## Run diagnostics
+
+Each new block run includes an allowlisted `config` snapshot, a relevant `input` and the block's own `output`. The in-memory workflow context and external output payloads remain independent of these diagnostic copies. Run inspection provides **Block execution details** even when the original block or workflow has been deleted.
+
+Redaction occurs before persistence using the shared redactor. JSON template strings are parsed first; unknown configuration fields are excluded. Diagnostic payloads are capped at 16 KiB and individual configuration fields at 4 KiB; larger values show an omission marker and byte count. These caps do not change execution inputs.
+
+On the first startup introducing `automation_block_runs.config_json`, the nullable column is added without changing existing run or block-run rows. Legacy rows expose configuration as unavailable rather than inventing an empty configuration. Existing imported history archives remain read-only JSON; new exports include diagnostic `config` alongside block input/output.

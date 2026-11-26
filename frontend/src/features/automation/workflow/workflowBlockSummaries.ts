@@ -69,7 +69,7 @@ const blockSummaryFormatters = {
     ];
     const valueRequired = !operatorHasNoValue(block.config.operator);
     const value = valueRequired ? formatValue(block.config.value) : "";
-    if (valueRequired) fields.push({ label: "Value", value });
+    if (valueRequired) fields.push({ label: block.config.operator === "changed_by_at_least" ? "Minimum change" : "Value", value });
     return summary(fields);
   },
   wait: (block) => {
@@ -214,6 +214,7 @@ function contentModeLabel(mode: AutomationBlock["config"]["contentMode"]) {
 function outputActionLabel(action: AutomationBlock["config"]["action"]) {
   if (action === "send_request") return "Send request";
   if (action === "publish") return "Publish";
+  if (action === "display_text") return "Display text";
   return "Pulse";
 }
 

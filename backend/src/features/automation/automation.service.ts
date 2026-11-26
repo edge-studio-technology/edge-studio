@@ -1,4 +1,6 @@
 import fs from "node:fs/promises";
+import { db } from "../../db/database.js";
+import { conditionBaselineKey, evaluateNumericChange, type PendingConditionBaseline } from "./automationConditions.js";
 import {
   getDataSource,
   updateDataSourceReadResult,
@@ -10,6 +12,7 @@ import { publishMqttOutput } from "../data-sources/mqttOutput.service.js";
 import { capturePiCamera } from "../data-sources/cameraCapture.service.js";
 import {
   parseBmeSensorConfig,
+  parseBh1750SensorConfig,
   parseDeviceSystemDataConfig,
   parseHttpOutputConfig,
   parseJsonApiConfig,
@@ -19,7 +22,8 @@ import {
   sendMultipartMediaOutput,
   serializeDataSource,
 } from "../data-sources/dataSources.service.js";
-import { readBmeSensorSource } from "../data-sources/sensorHelper.service.js";
+import { readBh1750SensorSource, readBmeSensorSource } from "../data-sources/sensorHelper.service.js";
+import { displayText } from "../data-sources/displayOutput.service.js";
 import {
   createDataSourceRead,
   dataSourceReference,
@@ -46,6 +50,8 @@ import {
   getAutomationWorkflow,
   listAutomationBlocks,
   listDueScheduleWorkflows,
+  getConditionBaseline,
+  saveConditionBaselines,
   updateAutomationBlockRun,
   updateAutomationWorkflow,
   updateAutomationRunError,
@@ -61,12 +67,14 @@ import {
   listAutomationBlockRuns,
   listAutomationRuns,
   listAutomationRunsForWorkflow,
+  recordAutomationBlockInput,
   type AutomationBlockRunRecord,
   type AutomationRunListQuery,
   type AutomationRunRecord,
 } from "./automationRuns.repository.js";
 import { createAutomationInboxItem } from "./automationInbox.repository.js";
 import { reserveWorkflowRunBudget } from "./automationBudget.repository.js";
+import { blockConfigSnapshot, namedRunSnapshot } from "./automationRunSnapshots.js";
 import {
   isEventStartBlock,
   isPrivilegedAutomationBlock,
@@ -104,6 +112,7 @@ type WorkflowContext = {
   output?: unknown;
   stopped?: boolean;
   budgetReserved?: boolean;
+  pendingBaselines: PendingConditionBaseline[];
   variables: Record<string, unknown>;
 };
 
@@ -126,7 +135,7 @@ type WorkflowCondition = {
   source?: "trigger" | "variable";
   fieldPath?: string;
   variableName?: string;
-  operator?: FieldCondition["operator"];
+  operator?: FieldCondition["operator"] | "changed_by_at_least";
   value?: unknown;
 };
 
@@ -221,6 +230,7 @@ export function serializeAutomationBlockRun(record: AutomationBlockRunRecord) {
     finishedAt: record.finished_at,
     status: record.status,
     durationMs: record.duration_ms,
+    config: record.config_json ? (JSON.parse(record.config_json) as unknown) : null,
     input: record.input_json ? (JSON.parse(record.input_json) as unknown) : null,
     output: record.output_json ? (JSON.parse(record.output_json) as unknown) : null,
     error: errorMessage(record.error),
@@ -267,7 +277,7 @@ export async function executeWorkflow(
   markEventWorkflowAccepted(latestWorkflow.id, mainBlocks[0], trigger);
 
   runningWorkflowIds.add(latestWorkflow.id);
-  const context: WorkflowContext = { trigger, variables: {} };
+  const context: WorkflowContext = { trigger, variables: {}, pendingBaselines: [] };
   let nextRunAt: string | null = latestWorkflow.next_run_at;
   let run = null as ReturnType<typeof createAutomationRun> | null;
 
@@ -291,12 +301,16 @@ export async function executeWorkflow(
       if (context.stopped) break;
     }
 
-    const updatedWorkflow = updateAutomationRunSuccess(latestWorkflow.id, {
-      hash: context.hash ?? null,
-      proofId: context.proofId ?? null,
-      nextRunAt,
-    });
-    finishAutomationRun(run.id, { status: "success" });
+    const updatedWorkflow = db.transaction(() => {
+      if (!context.stopped) saveConditionBaselines(latestWorkflow.id, context.pendingBaselines);
+      const updated = updateAutomationRunSuccess(latestWorkflow.id, {
+        hash: context.hash ?? null,
+        proofId: context.proofId ?? null,
+        nextRunAt,
+      });
+      finishAutomationRun(run!.id, { status: "success" });
+      return updated;
+    })();
     return {
       workflow: serializeAutomationWorkflow(updatedWorkflow),
       dataSource: context.data?.sourceId
@@ -468,7 +482,7 @@ async function executeBlock(
     valueJsonText?: string;
     source?: "trigger" | "variable";
     fieldPath?: string;
-    operator?: FieldCondition["operator"];
+    operator?: WorkflowCondition["operator"];
     value?: unknown;
     condition?: FieldCondition | null;
     recipientAddressBookId?: string;
@@ -487,14 +501,15 @@ async function executeBlock(
     orderIndex: block.order_index,
     blockType: block.type,
     blockLabel: blockLabel(block.type),
-    input: contextSummary(context),
+    config: blockConfigSnapshot(block.type, config),
+    input: blockInputSummary(block.type, config, context),
   });
 
   try {
     let status: "success" | "skipped" = "success";
     if (block.type.endsWith("_start")) {
       updateAutomationBlockRun(block.id);
-      finishAutomationBlockRun(blockRun.id, { status: "success", output: contextSummary(context) });
+      finishAutomationBlockRun(blockRun.id, { status: "success" });
       return;
     }
     if (isPrivilegedAutomationBlock(block.type) && !context.budgetReserved) {
@@ -506,16 +521,17 @@ async function executeBlock(
       await fetchDataSource(workflow, block, context, String(config.sourceId ?? ""));
     else if (block.type === "capture_camera") await captureCamera(workflow, block, context, config);
     else if (block.type === "set_variable") setVariable(config, context);
-    else if (block.type === "if_payload_field_equals") checkPayloadFieldEquals(config, context);
+    else if (block.type === "if_payload_field_equals") checkPayloadFieldEquals(workflow, block, config, context);
     else if (block.type === "wait") await wait(Number(config.durationMs ?? 0));
     else if (block.type === "show_preview") showPreview(workflow, block, runId, config, context);
     else if (block.type === "stamp_integritas")
       status = await stampLatestHash(workflow, context, config.condition ?? null);
-    else if (block.type === "control_output") await controlOutput(config, context);
+    else if (block.type === "control_output")
+      await controlOutput(config, context, (input) => recordAutomationBlockInput(blockRun.id, input));
     else if (block.type === "send_transaction") await sendTransaction(config, context, workflow);
     else throw new Error(`Unsupported automation block: ${block.type}`);
     updateAutomationBlockRun(block.id);
-    finishAutomationBlockRun(blockRun.id, { status, output: contextSummary(context) });
+    finishAutomationBlockRun(blockRun.id, { status, output: blockOutputSummary(block.type, context) });
     return;
   } catch (error) {
     const details = blockError({
@@ -531,7 +547,6 @@ async function executeBlock(
     updateAutomationBlockRun(block.id, { error: details });
     finishAutomationBlockRun(blockRun.id, {
       status: "failed",
-      output: contextSummary(context),
       error: details,
     });
     throw error;
@@ -616,6 +631,8 @@ async function fetchDataSource(
     const result =
       source.type === "bme-sensor"
         ? await readBmeSensorSource(parseBmeSensorConfig(JSON.parse(source.config) as unknown))
+        : source.type === "bh1750-sensor"
+          ? await readBh1750SensorSource(parseBh1750SensorConfig(JSON.parse(source.config) as unknown))
         : source.type === "device-system-data"
           ? await readDeviceSystemDataSource(parseDeviceSystemDataConfig(JSON.parse(source.config) as unknown))
         : await readJsonApiSource(parseJsonApiConfig(JSON.parse(source.config) as unknown));
@@ -934,6 +951,7 @@ function nextScheduleRunAt(block: AutomationBlockRecord, previousNextRunAt: stri
 function sourceUrlForRecord(source: { type: string; config: string }) {
   const config = JSON.parse(source.config) as Record<string, unknown>;
   if (source.type === "pi-camera") return `pi-camera:${config.mode ?? "photo"}`;
+  if (source.type === "bh1750-sensor") return `bh1750:i2c-${config.bus ?? 1}:${config.address ?? "0x23"}`;
   if (source.type === "bme-sensor")
     return `${config.sensor ?? "bme280"}:i2c-${config.bus ?? 1}:${config.address ?? "0x76"}`;
   if (source.type === "device-system-data") return "device-system-data:local";
@@ -941,7 +959,7 @@ function sourceUrlForRecord(source: { type: string; config: string }) {
 }
 
 function isReadableDataSource(type: string) {
-  return type === "json-api" || type === "bme-sensor" || type === "device-system-data";
+  return type === "json-api" || type === "bme-sensor" || type === "bh1750-sensor" || type === "device-system-data";
 }
 
 function blockLabel(type: string) {
@@ -958,19 +976,23 @@ function blockLabel(type: string) {
   return "Start workflow";
 }
 
-function checkPayloadFieldEquals(config: WorkflowCondition, context: WorkflowContext) {
-  const result = evaluateWorkflowCondition(context, config);
+function checkPayloadFieldEquals(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, config: WorkflowCondition, context: WorkflowContext) {
+  const key = conditionBaselineKey(config);
+  const previous = config.operator === "changed_by_at_least" ? getConditionBaseline(workflow.id, block.id, key) : null;
+  const result = evaluateWorkflowCondition(context, config, previous);
+  if (config.operator === "changed_by_at_least" && result.matched) context.pendingBaselines.push({ blockId: block.id, configJson: block.config_json, key, value: result.actual as number });
   context.output = { ...result, action: result.matched ? "continued" : "stopped" };
   if (!result.matched) context.stopped = true;
 }
 
-function evaluateWorkflowCondition(context: WorkflowContext, condition: WorkflowCondition) {
+function evaluateWorkflowCondition(context: WorkflowContext, condition: WorkflowCondition, previous: number | null) {
   const source = condition.source ?? "trigger";
   const actual =
     source === "variable"
       ? context.variables[String(condition.variableName ?? "")]
       : getPathValue(context.trigger.payload, String(condition.fieldPath ?? ""));
-  const matched = evaluateOperator(actual, condition.operator!, condition.value);
+  const change = condition.operator === "changed_by_at_least" ? evaluateNumericChange(actual, condition.value, previous) : null;
+  const matched = condition.operator === "changed_by_at_least" ? change!.matched : evaluateOperator(actual, condition.operator!, condition.value);
   return {
     source,
     fieldPath: condition.fieldPath,
@@ -979,6 +1001,7 @@ function evaluateWorkflowCondition(context: WorkflowContext, condition: Workflow
     expected: condition.value,
     actual,
     matched,
+    ...(change ?? {}),
   };
 }
 
@@ -986,6 +1009,7 @@ function evaluateCondition(
   context: WorkflowContext,
   condition: FieldCondition & { source: "trigger" | "data" },
 ) {
+  if ((condition.operator as string) === "changed_by_at_least") throw new Error("Changed by at least requires a standalone If field matches block");
   const source =
     condition.source === "data" ? context.data?.result.preview : context.trigger.payload;
   const actual = getPathValue(source, condition.fieldPath);
@@ -1100,30 +1124,45 @@ async function controlOutput(
     multipartJsonText?: string;
   },
   context: WorkflowContext,
+  recordInput: (input: unknown) => void,
 ) {
   if (!config.targetId) throw new Error("Control output block requires a targetId");
   const target = getDataSource(config.targetId);
   if (!target) throw new Error("Control output target was not found");
 
   let result: unknown = null;
-  if (target.type === "gpio-output") {
+  if (target.type === "spi-display") {
+    if (config.action !== "display_text") throw new Error("SPI display action must be display_text");
+    if (config.bodyMode !== "custom") throw new Error("SPI display requires a custom JSON text payload");
+    const payload = await outputPayload(config, context);
+    result = await displayText({ targetId: target.id, payload: payload.body });
+  } else if (target.type === "gpio-output") {
     result = await pulseGpioOutput({
       targetId: config.targetId,
       durationMs: Number(config.durationMs ?? 0),
     });
   } else if (target.type === "http-output") {
     const httpConfig = parseHttpOutputConfig(JSON.parse(target.config) as unknown);
-    if (config.bodyMode === "multipart_media")
+    if (config.bodyMode === "multipart_media") {
+      const payload = await multipartMediaPayload(config, context);
+      recordInput({
+        fileName: payload.fileName,
+        mediaType: payload.mediaType,
+        sizeBytes: payload.bytes.length,
+        jsonPayload: payload.jsonPayload,
+      });
       result = await sendMultipartMediaOutput(
         httpConfig,
-        await multipartMediaPayload(config, context),
+        payload,
       );
-    else {
+    } else {
       const payload = await outputPayload(config, context);
+      recordInput({ body: payload.body, hasBody: payload.hasBody });
       result = await sendHttpOutput(httpConfig, payload.body, payload.hasBody);
     }
   } else if (target.type === "mqtt-output") {
     const payload = await outputPayload(config, context);
+    recordInput({ body: payload.body });
     result = await publishMqttOutput({ targetId: config.targetId, payload: payload.body });
   }
 
@@ -1385,6 +1424,83 @@ function compareDecimalStrings(a: string, b: string) {
   const bCombined = `${bNorm.int}${bNorm.frac.padEnd(fracLen, "0")}`;
   if (aCombined === bCombined) return 0;
   return BigInt(aCombined) > BigInt(bCombined) ? 1 : -1;
+}
+
+function blockInputSummary(type: string, config: Record<string, unknown>, context: WorkflowContext) {
+  if (type.endsWith("_start"))
+    return { trigger: { type: context.trigger.type, sourceId: context.trigger.sourceId } };
+  if (type === "stamp_integritas" || (type === "show_preview" && config.contentMode === "latest_data")) {
+    return {
+      data: { sourceName: context.data?.sourceName, readId: context.data?.readId },
+      ...(type === "stamp_integritas" ? { hash: context.hash } : {}),
+    };
+  }
+  if (type === "if_payload_field_equals") {
+    const name = String(config.variableName ?? "");
+    const field = config.source === "variable" ? name : String(config.fieldPath ?? "");
+    return {
+      actual: namedRunSnapshot(
+        field,
+        config.source === "variable" ? context.variables[name] : getPathValue(context.trigger.payload, field),
+      ),
+    };
+  }
+  return null;
+}
+
+function blockOutputSummary(type: string, context: WorkflowContext) {
+  if (["fetch_data_source", "record_trigger_event", "capture_camera"].includes(type)) {
+    return {
+      data: {
+        sourceId: context.data?.sourceId,
+        sourceName: context.data?.sourceName,
+        readId: context.data?.readId,
+      },
+      hash: context.hash,
+    };
+  }
+  if (type.endsWith("_start") || type === "wait") return null;
+  if (type === "set_variable") {
+    const output = context.output as { action: string; name: string; value: unknown };
+    return { output: { ...output, value: namedRunSnapshot(output.name, output.value) } };
+  }
+  if (type === "if_payload_field_equals") {
+    const output = context.output as {
+      variableName?: string;
+      fieldPath?: string;
+      actual?: unknown;
+      expected?: unknown;
+    };
+    const name = output.variableName ?? output.fieldPath ?? "value";
+    return {
+      output: {
+        ...output,
+        actual: namedRunSnapshot(name, output.actual),
+        expected: namedRunSnapshot(name, output.expected),
+      },
+    };
+  }
+  if (type === "stamp_integritas") {
+    const output = context.output as {
+      condition?: { fieldPath: string; actual: unknown; expected: unknown };
+    };
+    const condition = output.condition;
+    return {
+      output: {
+        ...output,
+        ...(condition
+          ? {
+              condition: {
+                ...condition,
+                actual: namedRunSnapshot(condition.fieldPath, condition.actual),
+                expected: namedRunSnapshot(condition.fieldPath, condition.expected),
+              },
+            }
+          : {}),
+      },
+    };
+  }
+  return { output: context.output };
 }
 
 function contextSummary(context: WorkflowContext) {

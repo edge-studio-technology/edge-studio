@@ -89,6 +89,7 @@ services:
       ENABLE_CAMERA: "false"
       ENABLE_GPIO: "false"
       ENABLE_SENSORS: "false"
+      ENABLE_DISPLAYS: "false"
       HOST_AGENT_URL: \${HOST_AGENT_URL:-http://host.docker.internal:38182}
       HOST_AGENT_TOKEN: \${HOST_AGENT_TOKEN:-}
       HOST_CAPABILITY_DEBUG: \${HOST_CAPABILITY_DEBUG:-false}
@@ -299,8 +300,12 @@ HOST_AGENT_TOKEN=
 HOST_AGENT_PORT=38182
 HOST_CAPABILITY_DEBUG=false
 
-# Optional: Environmental sensor support (BME280/BME680)
+# Optional: I2C sensor support (BME280/BME680 environmental, BH1750 light)
 ENABLE_SENSORS=false
+ENABLE_DISPLAYS=false
+DISPLAY_HELPER_URL=http://host.docker.internal:38183
+DISPLAY_HELPER_PORT=38183
+DISPLAY_HELPER_TOKEN=
 SENSOR_HELPER_URL=http://host.docker.internal:38181
 SENSOR_HELPER_TOKEN=
 SENSOR_HELPER_PORT=38181

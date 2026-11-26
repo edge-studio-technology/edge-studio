@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -40,12 +41,18 @@ def load_bme680():
 class SensorHelper:
     def __init__(self, token):
         self.token = token
+        self.bh1750_lock = threading.Lock()
 
     def capabilities(self):
         SMBus = load_smbus()
         supported_sensors = ["bme280"]
         if load_bme680() is not None:
             supported_sensors.append("bme680")
+        try:
+            from smbus2 import SMBus, i2c_msg
+            supported_sensors.append("bh1750")
+        except ImportError:
+            pass
         if SMBus is None:
             return {"available": False, "reason": "Python smbus2 or smbus module was not found. Install python3-smbus or python3-smbus2 on the host.", "supportedSensors": supported_sensors}
         if not Path("/dev/i2c-1").exists():
@@ -54,9 +61,17 @@ class SensorHelper:
 
     def read(self, payload):
         sensor = str(payload.get("sensor", "bme280")).lower()
-        if sensor not in ("bme280", "bme680"):
+        if sensor not in ("bme280", "bme680", "bh1750"):
             raise ValueError("Unsupported sensor type")
         bus = parse_int(payload.get("bus", 1), "bus", 0, 10)
+        if sensor == "bh1750":
+            if type(payload.get("bus", 1)) is not int:
+                raise ValueError("bus must be an integer from 0 to 10")
+            address_text = str(payload.get("address", "0x23")).strip().lower()
+            if address_text not in ("0x23", "0x5c"):
+                raise ValueError("address must be 0x23 or 0x5c")
+            with self.bh1750_lock:
+                return read_bh1750(bus, int(address_text, 16))
         address = parse_address(payload.get("address", "0x76"))
         if sensor == "bme680":
             return read_bme680(bus, address)
@@ -78,6 +93,32 @@ def parse_address(value):
     if text not in ("0x76", "0x77"):
         raise ValueError("address must be 0x76 or 0x77")
     return int(text, 16)
+
+
+def read_bh1750(bus_number, address):
+    try:
+        from smbus2 import SMBus, i2c_msg
+    except ImportError:
+        raise RuntimeError("Python smbus2 module was not found. Repair I2C sensors from Devices -> Hardware support.")
+
+    with SMBus(bus_number) as bus:
+        bus.write_byte(address, 0x01)
+        bus.write_byte(address, 0x07)
+        bus.write_byte(address, 0x42)
+        bus.write_byte(address, 0x65)
+        bus.write_byte(address, 0x20)
+        time.sleep(0.180)
+        message = i2c_msg.read(address, 2)
+        bus.i2c_rdwr(message)
+        data = list(message)
+
+    return {
+        "sensor": "bh1750",
+        "bus": bus_number,
+        "address": f"0x{address:02x}",
+        "lux": round(((data[0] << 8) | data[1]) / 1.2, 2),
+        "readAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
 
 
 def read_bme280(bus_number, address):

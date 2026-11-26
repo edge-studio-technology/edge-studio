@@ -17,6 +17,7 @@ function blockRun(overrides: Partial<AutomationBlockRun> = {}): AutomationBlockR
     finishedAt: "2026-08-01T00:00:01.000Z",
     status: "success",
     durationMs: 1000,
+    config: null,
     input: null,
     output: null,
     error: null,
@@ -44,6 +45,24 @@ function run(overrides: Partial<AutomationRun> = {}): AutomationRun {
 }
 
 describe("AutomationRunInspectModal", () => {
+  it("shows recorded settings and results even after the original block was deleted", async () => {
+    render(<AutomationRunInspectModal run={run({ blocks: [blockRun({
+      blockId: null, blockType: "set_variable", blockLabel: "Set variable", config: { variableName: "lux", variableSource: "custom_json", valueJsonText: "30" }, output: { output: { action: "set_variable", name: "lux", value: 30 } },
+    })] })} onClose={() => {}} />);
+    await userEvent.click(screen.getByText("Block execution details"));
+    await userEvent.click(screen.getByText("0. Set variable · success"));
+    expect(screen.getByText("Recorded configuration")).toBeVisible();
+    expect(screen.getByText("Recorded result")).toBeVisible();
+    expect(screen.getAllByText(/valueJsonText/).length).toBeGreaterThan(0);
+  });
+
+  it("labels configuration that was not recorded for a legacy run", async () => {
+    render(<AutomationRunInspectModal run={run()} onClose={() => {}} />);
+    await userEvent.click(screen.getByText("Block execution details"));
+    await userEvent.click(screen.getByText("0. Wait · success"));
+    expect(screen.getByText("Unavailable for this historical run")).toBeVisible();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });

@@ -64,6 +64,9 @@ const MB = 1024 * 1024;
 const databasePath = resolveDatabasePath();
 
 export const env = {
+  displaysEnabled: process.env.ENABLE_DISPLAYS === "true",
+  displayHelperUrl: process.env.DISPLAY_HELPER_URL ?? "http://host.docker.internal:38183",
+  displayHelperToken: process.env.DISPLAY_HELPER_TOKEN ?? "",
   port: Number(process.env.PORT ?? 3000),
   buildVersion: process.env.EDGE_STUDIO_BUILD_VERSION ?? "unknown",
   buildCommit: process.env.EDGE_STUDIO_BUILD_COMMIT ?? "unknown",

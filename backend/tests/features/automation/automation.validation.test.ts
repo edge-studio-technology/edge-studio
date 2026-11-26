@@ -107,6 +107,22 @@ function expectWarning(result: { warnings: { code: string }[] }, code: string) {
 }
 
 describe("validateAutomationDraft — workflow shape", () => {
+  it("accepts numeric change conditions and rejects invalid thresholds", async () => {
+    for (const value of [1, 0.1, 100]) {
+      const result = await validation.validateAutomationDraft([manualStart(), block({ clientId: "condition", type: "if_payload_field_equals", config: { source: "trigger", fieldPath: "lux", operator: "changed_by_at_least", value } })]);
+      assert.equal(result.ok, true);
+    }
+    for (const value of [undefined, null, 0, -1, Infinity, NaN, "1", true]) {
+      const result = await validation.validateAutomationDraft([manualStart(), block({ clientId: "condition", type: "if_payload_field_equals", config: { source: "trigger", fieldPath: "lux", operator: "changed_by_at_least", value } })]);
+      expectError(result, "condition.invalid_change_threshold");
+    }
+  });
+
+  it("rejects change conditions attached directly to stamps", async () => {
+    const result = await validation.validateAutomationDraft([manualStart(), block({ clientId: "fetch", type: "fetch_data_source" }), block({ clientId: "stamp", type: "stamp_integritas", parentBlockId: "fetch", config: { condition: { source: "data", operator: "changed_by_at_least" } } })]);
+    expectError(result, "stamp_integritas.unsupported_change_condition");
+  });
+
   it("errors when there are no blocks", async () => {
     const result = await validation.validateAutomationDraft([]);
     expectError(result, "workflow.no_blocks");
@@ -389,6 +405,45 @@ describe("validateAutomationDraft — block references", () => {
 });
 
 describe("validateAutomationDraft — hardware dependencies", () => {
+  it("validates display JSON/action and the opt-in helper before execution", async () => {
+    getDataSourceMock.mockReturnValue({ id: "lcd", type: "spi-display", config: '{"model":"pim576","rotation":0}' });
+    const displayBlock = block({ clientId: "display", type: "control_output", config: { targetId: "lcd", action: "display_text", bodyMode: "custom", bodyTemplateText: '{"text":"Hello"}' } });
+    env.displaysEnabled = false;
+    expectError(await validation.validateAutomationDraft([manualStart(), displayBlock]), "displays.disabled");
+    const token = env.displayHelperToken;
+    env.displaysEnabled = true;
+    env.displayHelperToken = "test-token";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"available":true,"supportedModels":["pim576"]}')));
+    try {
+      assert.equal((await validation.validateAutomationDraft([manualStart(), displayBlock])).errors.length, 0);
+      expectError(await validation.validateAutomationDraft([manualStart(), { ...displayBlock, config: { ...displayBlock.config, action: "pulse" } }]), "control_output.invalid_display_action");
+      expectError(await validation.validateAutomationDraft([manualStart(), { ...displayBlock, config: { ...displayBlock.config, bodyTemplateText: '{}' } }]), "control_output.invalid_display_payload");
+    } finally {
+      env.displaysEnabled = false;
+      env.displayHelperToken = token;
+      vi.unstubAllGlobals();
+    }
+  });
+  it.each([
+    [{ enabled: false, available: false }, "sensors.disabled"],
+    [{ enabled: true, available: true, supportedSensors: ["bme280"] }, "sensors.unsupported_model"],
+    [{ enabled: true, available: true }, "sensors.unsupported_model"],
+  ])("rejects a BH1750 workflow without the necessary helper support: %j", async (capability, code) => {
+    getDataSourceMock.mockReturnValue({ id: "light", type: "bh1750-sensor", config: '{}' });
+    getSensorHelperCapabilityMock.mockResolvedValue(capability);
+    const result = await validation.validateAutomationDraft([manualStart(), block({ clientId: "read", type: "fetch_data_source", config: { sourceId: "light" } })]);
+    expectError(result, code as string);
+  });
+
+  it("accepts BH1750 as a readable source and warns when its helper is unavailable", async () => {
+    getDataSourceMock.mockReturnValue({ id: "light", type: "bh1750-sensor", config: '{}' });
+    getSensorHelperCapabilityMock.mockResolvedValue({ enabled: true, available: true, supportedSensors: ["bh1750"] });
+    const blocks = [manualStart(), block({ clientId: "read", type: "fetch_data_source", config: { sourceId: "light" } })];
+    assert.equal((await validation.validateAutomationDraft(blocks)).errors.length, 0);
+    getSensorHelperCapabilityMock.mockResolvedValue({ enabled: true, available: false });
+    assert.ok((await validation.validateAutomationDraft(blocks)).warnings.some((warning) => warning.code === "sensors.unavailable"));
+  });
+
   it("errors when a GPIO start source depends on disabled GPIO support", async () => {
     getDataSourceMock.mockReturnValue({ id: "gpio1", type: "gpio-input", config: "{}" });
     getGpioInputCapabilityMock.mockReturnValue({ enabled: false, available: false, reason: "GPIO support is disabled." });

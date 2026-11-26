@@ -1,6 +1,6 @@
 {
   "name": "edge-studio",
-  "version": "0.45.0",
+  "version": "0.46.0",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -16,7 +16,7 @@
     "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck && npm --prefix update-agent run typecheck",
     "knip": "cd backend && knip --include files,exports,types --no-progress && cd ../frontend && knip --include files,exports,types --no-progress && cd ../update-agent && knip --include files,exports,types --no-progress",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
-    "audit:moderate": "npm --prefix backend audit --audit-level=moderate && npm --prefix frontend audit --audit-level=moderate && npm --prefix update-agent audit --audit-level=moderate",
+    "audit:moderate": "node scripts/dev/check-audit.mjs",
     "release:build-runtime-bundle": "node scripts/release/build-runtime-bundle.mjs",
     "release:generate-signing-key": "node scripts/release/generate-signing-key.mjs",
     "docker:rebuild": "docker compose up -d --build backend frontend update-agent",

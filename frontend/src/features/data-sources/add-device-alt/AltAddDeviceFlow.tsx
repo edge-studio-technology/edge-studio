@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CapabilitySupportLinks } from "../../feedback/CapabilitySupportLinks";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
+import { ErrorAlert } from "../../../components/patterns/ErrorAlert";
 import { useToast } from "../../../components/ToastProvider";
 import { buildDeviceConfigInput } from "../buildDeviceConfig";
 import { createDataSource } from "../dataSourcesApi";
@@ -107,7 +108,7 @@ export function AltAddDeviceFlow({
     setStep(parentStep(step));
   }
 
-  const options = stepOptions(step, setStep, selectTemplate);
+  const options = stepOptions(step, setStep, selectTemplate).filter((option) => (option.title !== "BH1750 Light Sensor" || capabilities?.sensors?.enabled) && (option.title !== "PIM576 SPI LCD" || capabilities?.displays?.enabled));
   const provisioningSteps = altDeviceProvisioningSteps(fields);
   const provisioningStep = provisioningSteps[provisioningStepIndex];
   const isFinalProvisioningStep = provisioningStepIndex === provisioningSteps.length - 1;
@@ -182,6 +183,7 @@ export function AltAddDeviceFlow({
         }
       >
         <AltDeviceForm
+          notice={template.type === "bh1750-sensor" && !capabilities?.sensors?.supportedSensors?.includes("bh1750") ? <ErrorAlert title="BH1750 helper support is missing">Repair I2C sensors from Devices → Hardware support to refresh the helper and install smbus2 before reading this device.</ErrorAlert> : undefined}
           template={template}
           fields={fields}
           currentStep={provisioningStep.id}
@@ -234,7 +236,9 @@ export function AltAddDeviceFlow({
         )
       }
     >
+      {step === "sensor-templates" && !capabilities?.sensors?.enabled && <p className="type-body text-text-secondary">Enable I2C sensors in Devices → Hardware support to add a BH1750 light sensor.</p>}
       <SetupDevicePicker step={step} options={options} />
+      {step === "root" && !capabilities?.displays?.enabled && <p className="type-body text-text-secondary">Enable SPI displays in Devices → Hardware support to add a PIM576 LCD.</p>}
     </Modal>
   );
 }
@@ -301,7 +305,7 @@ function stepIntro(step: WizardStep) {
     case "actuators":
       return { title: "Actuators", description: "Control physical devices connected to this Pi." };
     default:
-      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, Pi-connected sensor, camera, or actuator." };
+      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, Pi-connected device, or this Pi's system data." };
   }
 }
 
@@ -358,7 +362,7 @@ function stepOptions(
       ];
     case "sensors":
       return [
-        { title: "Template devices", description: "Use presets for buttons, motion sensors, and BME environmental sensors.", icon: ThermometerSun, action: () => setStep("sensor-templates") },
+        { title: "Template devices", description: "Use presets for buttons, motion, environmental, and light sensors.", icon: ThermometerSun, action: () => setStep("sensor-templates") },
         templateOption("Any device", "Configure a custom Raspberry Pi GPIO input pin manually.", findInputTemplate("GPIO Input Pin"), selectTemplate),
       ];
     case "sensor-templates":
@@ -366,10 +370,12 @@ function stepOptions(
         templateOption("GPIO Button", "Detect a simple push button wired between GPIO17 and GND.", findInputTemplate("GPIO Button"), selectTemplate),
         templateOption("PIR Motion Sensor", "Detect HC-SR501-style motion events from a GPIO input pin.", findInputTemplate("PIR Motion Sensor"), selectTemplate),
         templateOption(environmentalSensorOption.title, environmentalSensorOption.description, environmentalSensorOption, selectTemplate),
+        templateOption("BH1750 Light Sensor", "Read ambient light in lux over the Pi I2C bus.", findInputTemplate("BH1750 Light Sensor"), selectTemplate),
       ];
     case "actuators":
       return [
         templateOption("GPIO LED", "Control a low-current LED output from workflow action blocks.", findOutputTemplate("GPIO LED"), selectTemplate),
+        templateOption("PIM576 SPI LCD", "Display text and workflow variables on the Pi-connected screen.", findOutputTemplate("PIM576 SPI LCD"), selectTemplate),
       ];
     default:
       return [

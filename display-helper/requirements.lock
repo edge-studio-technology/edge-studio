@@ -1,0 +1,15 @@
+# Target: CPython 3.13 on Debian 13 aarch64.
+# Every direct and transitive runtime dependency is exact and hash-verified.
+gpiod==2.6.0 \
+    --hash=sha256:1076f0384c63fdb9e4438508c511378c57b4236c6b43b65ad609d0dafdfcfd7d
+gpiodevice==0.1.0 \
+    --hash=sha256:4d1716ebed3068dd233e9851612773cbdf7a194289b8ea0aaf712f2fe90b1adb
+numpy==2.5.5 \
+    --hash=sha256:ae2b8285d0b4eed24739c3ca9ec0fa424a0247489c01e1d5fe2815a599e11d33
+Pillow==12.0.0 \
+    --hash=sha256:bde737cff1a975b70652b62d626f7785e0480918dece11e8fef3c0cf057351c3 \
+    --hash=sha256:0b817e7035ea7f6b942c13aa03bb554fc44fea70838ea21f8eb31c638326584e
+spidev==3.8 \
+    --hash=sha256:2bc02fb8c6312d519ebf1f4331067427c0921d3f77b8bcaf05189a2e8b8382c0
+st7789==1.0.1 \
+    --hash=sha256:816ee227984b2f5b4647f7c4ab241c57b495d1502e27a8127f27388d5e8f861f

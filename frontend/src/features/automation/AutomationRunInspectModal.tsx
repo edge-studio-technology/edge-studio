@@ -72,6 +72,18 @@ export function AutomationRunInspectModal({
           </Disclosure>
         ) : null}
 
+        <Disclosure title="Block execution details" defaultOpen={false}>
+          {run.blocks.map((block) => <Disclosure key={block.id} title={`${block.order}. ${block.blockLabel} · ${block.status}`} defaultOpen={false}>
+            <div className="gap-detail-next grid">
+              <strong>Recorded configuration</strong>
+              {block.config == null
+                ? <span className="text-copy-secondary">Unavailable for this historical run</span>
+                : <JsonPreviewContent value={block.config} />}
+              {block.input != null && <><strong>Received input</strong><JsonPreviewContent value={block.input} /></>}
+              {block.output != null && <><strong>Recorded result</strong><JsonPreviewContent value={block.output} /></>}
+            </div>
+          </Disclosure>)}
+        </Disclosure>
         <Disclosure title="Run data">
           <JsonPreviewContent value={run} />
         </Disclosure>

@@ -58,6 +58,7 @@ export function hasDeviceSetupGuide(source: DataSource) {
 }
 
 export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null {
+  if (source.type === "spi-display") return spiDisplayGuide(source);
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board")
     return guide(
       source,
@@ -81,6 +82,7 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   if (source.type === "gpio-input") return gpioInputGuide(source);
   if (source.type === "gpio-output") return gpioLedGuide(source);
   if (source.type === "bme-sensor") return bmeSensorGuide(source);
+  if (source.type === "bh1750-sensor") return bh1750SensorGuide(source);
   if (source.type === "device-system-data") return deviceSystemDataGuide(source);
   if (source.type === "pi-camera") return piCameraGuide(source);
   if (source.type === "json-api")
@@ -452,6 +454,13 @@ function basicWorkflowAction(): DeviceGuideAction {
 }
 
 function basicWorkflow(source: DataSource): DeviceGuideWorkflowInput {
+  if (source.type === "spi-display") return {
+    name: `${source.name} custom message`, enabled: false, blocks: [
+      { type: "manual_start", config: {}, clientId: "start" },
+      { type: "set_variable", config: { variableName: "message", variableSource: "custom_json", valueJsonText: '"Hello from Edge Studio"' }, clientId: "message" },
+      { type: "control_output", config: { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: '{"title":"Edge Studio","text":"{{message}}"}' }, clientId: "display" },
+    ],
+  };
   if (source.type === "gpio-input" || source.type === "webhook" || source.type === "mqtt") {
     const startType = source.type === "gpio-input" ? "gpio_event_start" : source.type === "webhook" ? "webhook_event_start" : "mqtt_event_start";
     return { name: `${source.name} event preview`, enabled: false, blocks: [
@@ -491,6 +500,64 @@ function basicWorkflow(source: DataSource): DeviceGuideWorkflowInput {
       },
     ],
   };
+}
+
+function spiDisplayGuide(source: DataSource) {
+  return guide(source, "PIM576 SPI LCD Setup", "Display text on the Pimoroni 1.54-inch 240×240 SPI LCD. Outputs occur only when you deliberately test or run a workflow.", [
+    { title: "Requirements", items: [
+      "Open Devices -> Hardware support -> SPI displays. If Action required is shown, choose Automatic setup or Manual setup. Reboot if requested, refresh status, then Enable. Automatic setup requires apt-get and raspi-config and never reboots automatically.",
+      "Enable/Repair installs Pimoroni st7789 1.0.1 and Pillow in the managed display-helper virtualenv. First setup may take several minutes.",
+      "One PIM576 uses SPI0 CE0 and GPIO8, GPIO10, GPIO11, GPIO24 and GPIO25. Do not assign these pins to another device or process.",
+      "Power off the Pi before wiring. Use 3.3V for this setup and BCM numbering where GPIO is named.",
+    ] },
+    { title: "Wiring", schematic: "pi-gpio", table: [
+      ["3V–5V", "3.3V / physical pin 1"], ["CS", "GPIO8 / CE0 / physical pin 24"],
+      ["SCK", "GPIO11 / SCLK / physical pin 23"], ["MOSI", "GPIO10 / physical pin 19"],
+      ["DC", "GPIO25 / physical pin 22"], ["BL", "GPIO24 / physical pin 18"], ["GND", "Ground / physical pin 6"],
+    ] },
+    { title: "Saved settings", table: [["Model", "Pimoroni PIM576"], ["Resolution", "240 × 240"], ["SPI", "Bus 0, CE0"], ["Rotation", `${source.config.rotation ?? 0}°`]] },
+    { title: "Verify", items: [
+      "Use Test display from the device menu. Confirm Edge Studio / Display connected appears on the physical screen.",
+      "Create the disabled starter workflow below: Manual run -> Set variable -> Control device. Change the message variable's Custom JSON string and run manually; no other sensor is required.",
+      "The output JSON uses text and optional title, for example {\"title\":\"Edge Studio\",\"text\":\"{{message}}\"}. Text wraps; content that cannot fit is rejected rather than silently cut off.",
+      "Check the workflow run and block result. A successful SPI write cannot prove that the screen is connected or that the displayed orientation/colours are correct.",
+    ] },
+    { title: "Troubleshooting and limits", items: [
+      "For a blank screen, check power, ground, BL, DC, CS and SPI enablement. For sideways text, edit Rotation on the saved device.",
+      "Check Hardware support if the helper is unavailable. Repair retains its token and environment; reinstall matching source if helper code is missing.",
+      "Text only, white on black, fixed font. No images, graphics, automatic refresh or additional display models. Rendering is not sent during form preview.",
+      "Display text is visible to anyone near the screen and is recorded in workflow output history. Avoid secrets. Disable stops future updates; the panel may retain the last frame until power is removed.",
+      "PIM576 output is physically verified on the documented Pi 4/Debian 13 setup. See the operator guide for the exact commit, photo and remaining evidence limits.",
+    ] },
+  ], "docs/guides/pim576-display.md");
+}
+
+function bh1750SensorGuide(source: DataSource) {
+  return guide(source, "BH1750 Light Sensor Setup", "Read ambient light in lux from the Adafruit BH1750 STEMMA QT (product 4681) connected directly to the Pi I2C bus.", [
+    { title: "Requirements", items: [
+      "Enable I2C sensors in Devices -> Hardware support and enable the Pi host I2C interface. Reboot if /dev/i2c-1 is missing.",
+      "For an existing installation, Repair I2C sensors to refresh the helper and install smbus2 in its managed virtualenv.",
+      "Power off the Pi before wiring. Use 3.3V and match the board labels; STEMMA QT is the connector for the same I2C signals.",
+    ] },
+    { title: "Wiring", schematic: "pi-gpio", table: [
+      ["VIN", "3.3V / physical pin 1"], ["GND", "Ground / physical pin 6"],
+      ["SCL", "GPIO3 / physical pin 5"], ["SDA", "GPIO2 / physical pin 3"],
+      ["ADDR", "Leave at default for 0x23; pull high to 3.3V for 0x5c"],
+    ] },
+    { title: "Saved settings", table: [
+      ["Sensor", "BH1750"], ["I2C bus", String(source.config.bus ?? 1)], ["I2C address", source.config.address ?? "0x23"],
+    ] },
+    { title: "Verify", items: [
+      "Click manual read in Devices. Confirm lux, sensor, bus, address, and readAt appear in the saved JSON preview and read history. Zero lux is a valid dark reading.",
+      "Shade the sensor, then expose it to light and read again. The lux value should change.",
+      "Create the disabled basic workflow below, then run it manually. For regular readings, replace Manual start with Schedule and choose the interval.",
+    ] },
+    { title: "Troubleshooting", items: [
+      "If reads fail, check wiring, bus 1 and the actual address (0x23 by default, 0x5c only with ADDR high). Check i2cdetect -y 1 if installed.",
+      "If the helper is unavailable or lacks BH1750 support, check Hardware support and Repair I2C sensors. Enabling support does not prove a sensor is connected.",
+      "A full-scale reading may be saturated. Fixed high-resolution readings are provided without calibration or automatic range adjustment.",
+    ] },
+  ], "docs/guides/bh1750-sensor.md");
 }
 
 function bmeSensorGuide(source: DataSource) {

@@ -19,9 +19,10 @@ import subprocess
 import sys
 
 
-SERVICES = ("edge-studio-host-agent", "edge-studio-camera-helper", "edge-studio-sensor-helper")
+SERVICES = ("edge-studio-host-agent", "edge-studio-camera-helper", "edge-studio-sensor-helper", "edge-studio-display-helper")
 CODE = (
     "backend", "frontend", "update-agent", "host-agent", "camera-helper", "sensor-helper",
+    "display-helper", ".venv-display-helper",
     "bin", "scripts", "docker", "docs", "node_modules", ".git", ".github", ".agents",
     ".claude", ".cursor", ".venv-sensor-helper", ".env.example", "package-lock.json",
     "docker-compose.yml", "docker-compose.release.yml", "docker-compose.override.yml",
@@ -127,11 +128,17 @@ def docker_inventory(app):
 
 def firewall_rules(services):
     rules = []
+    port_keys = {
+        "edge-studio-host-agent": "HOST_AGENT_PORT",
+        "edge-studio-camera-helper": "CAMERA_HELPER_PORT",
+        "edge-studio-sensor-helper": "SENSOR_HELPER_PORT",
+        "edge-studio-display-helper": "DISPLAY_HELPER_PORT",
+    }
     for path in services:
         text = path.read_text()
         values = dict(line.removeprefix("Environment=").split("=", 1)
                       for line in text.splitlines() if line.startswith("Environment=") and "=" in line.removeprefix("Environment="))
-        key = {"edge-studio-host-agent": "HOST_AGENT_PORT", "edge-studio-camera-helper": "CAMERA_HELPER_PORT", "edge-studio-sensor-helper": "SENSOR_HELPER_PORT"}[path.stem]
+        key = port_keys[path.stem]
         port = values.get(key, "")
         subnet = values.get("EDGE_STUDIO_DOCKER_SUBNET", "")
         if "iptables" not in text or not port.isdecimal() or not 1 <= int(port) <= 65535 or not subnet:
@@ -190,8 +197,9 @@ def show_plan(app, services, containers, paths, removal, delete_data, rules):
 
 
 def confirm(terminal, prompt):
-    terminal.write(prompt)
-    terminal.flush()
+    with open("/dev/tty", "w") as output:
+        output.write(prompt)
+        output.flush()
     answer = terminal.readline()
     if not answer:
         raise RuntimeError("Terminal input ended; uninstall cancelled.")
@@ -279,7 +287,7 @@ def main():
     try:
         if not args.dry_run:
             try:
-                terminal = open("/dev/tty", "r+")
+                terminal = open("/dev/tty", "r")
             except OSError:
                 raise RuntimeError("An interactive terminal is required for uninstall confirmation. Use --dry-run to preview.")
             if not args.delete_data:

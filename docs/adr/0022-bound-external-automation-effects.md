@@ -70,6 +70,8 @@ Integritas history is evidence. A security limit should not decide their product
 
 **Retention by record purpose**
 
+- Standalone numeric change conditions keep per-block baselines in SQLite, independent of expiring run history. The first finite numeric sample passes; subsequent samples compare absolute difference to the last successful, non-stopped workflow baseline. Pending values commit with run success, never on an output failure or later stopped condition. This makes small changes accumulate and allows a failed output to be retried. Condition identity edits reset the baseline; unrelated saves preserve it, and duplication starts fresh. Exact configuration matching prevents an in-flight run from overwriting an edited condition's state. Baselines are not a guarantee of exactly-once external effects: an output can succeed before a later failure.
+
 | Record | Policy |
 | --- | --- |
 | Workflow runs, block runs | Preserved by default; opt-in newest N per existing workflow, with blocks removed atomically with their parent |
@@ -108,8 +110,8 @@ Integritas history is evidence. A security limit should not decide their product
 - **Budget of 10 runs per hour** (first version). Not derived from usage; ordinary event-driven
   workflows hit it within an hour. 1,000 is an interim ceiling until usage data supports a measured
   value.
-- **Configurable or per-block-type budgets.** Configuration could weaken a security boundary; no
-  usage data shows where per-type limits should sit.
+- **Configurable or per-block-type budgets.** Configuration could weaken a security boundary; no usage data shows where per-type limits should sit.
+- **Compare with the previous sample, or retain change state only in memory/history.** Consecutive small changes could never pass the threshold; restarts or history retention would unexpectedly reset the baseline. Advancing it before downstream success could suppress retry after an output failure.
 - **A counter with `window_started_at`.** A fixed window allows boundary bursts.
 - **Cooldown or HTTP rate limiting only.** Process-local, and can't cover MQTT or GPIO.
 - **Budget only `send_transaction`.** Outputs, camera, and stamping have physical, privacy, storage,
@@ -136,6 +138,7 @@ Integritas history is evidence. A security limit should not decide their product
 
 ## History
 
+- 2026-11-20: Added successful-completion numeric change baselines independent of retained history.
 - 2026-11-03: Replaced capture-time environment pruning with confirmed camera policy, optional-extension pause/resume and proof-media protection (camera portion of #861); generated-download cleanup and Dashboard warnings remain separate.
 - 2026-11-03: Added independent opt-in inbox age expiry, preview counts and active-run/file protection; retained keep-until-deleted defaults and the shared inbox batch limit.
 - 2026-11-03: Added opt-in SQLite retention settings, reviewed previews, per-workflow/age cleanup, evidence protection and Settings disk warnings (#856/#857 and the automatic-retention part of #819).

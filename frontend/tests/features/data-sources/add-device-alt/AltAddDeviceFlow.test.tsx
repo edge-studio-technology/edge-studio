@@ -41,17 +41,33 @@ describe("AltAddDeviceFlow", () => {
   it("shows the setup category picker first", () => {
     renderFlow();
     expect(screen.getByText("Setup Device")).toBeInTheDocument();
+    expect(screen.getByText("Start with a board, protocol integration, Pi-connected device, or this Pi's system data.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Request support" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml");
     expect(screen.getByText("Public request on GitHub.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Boards/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Protocols/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sensors/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Actuators/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /PIM576 SPI LCD/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /This Pi system data/ })).toBeInTheDocument();
   });
 
+  it("saves the PIM576 output with a chosen rotation through the active wizard", async () => {
+    createDataSource.mockResolvedValue({ item: { id: "lcd", name: "PIM576 SPI LCD", type: "spi-display" } });
+    renderFlow({ capabilities: { gpioInput: { available: false, devicePath: "", reason: null }, displays: { enabled: true, available: true, reason: null, supportedModels: ["pim576"] } } });
+    await userEvent.click(screen.getByRole("button", { name: /Actuators/ }));
+    await userEvent.click(screen.getByRole("button", { name: /PIM576 SPI LCD/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+    await userEvent.selectOptions(screen.getByLabelText("Rotation"), "180");
+    await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
+    expect(screen.getByText("180°")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Add device" }));
+    await waitFor(() => expect(createDataSource).toHaveBeenCalledWith(expect.objectContaining({ type: "spi-display", config: { model: "pim576", rotation: 180 } })));
+  });
+
   it("opens the system-data provisioning flow from the root picker", async () => {
-    renderFlow();
+    renderFlow({ capabilities: { gpioInput: { available: false, devicePath: "", reason: null }, displays: { enabled: true, available: true, reason: null, supportedModels: ["pim576"] } } });
     await userEvent.click(screen.getByRole("button", { name: /This Pi system data/ }));
     expect(screen.getByRole("button", { name: "Next step (2)" })).toBeEnabled();
   });
@@ -83,6 +99,45 @@ describe("AltAddDeviceFlow", () => {
       config: { mode: "photo", width: 1920, height: 720, durationMs: 1000, fps: 30, outputFormat: "jpg" },
     }));
     expect(screen.getByRole("button", { name: "Open device guide" })).toBeInTheDocument();
+  });
+
+  it("adds a BH1750 through setup, validation, review and create with the selected address", async () => {
+    const created = { id: "light", name: "BH1750 Light Sensor", type: "bh1750-sensor" };
+    createDataSource.mockResolvedValue({ item: created });
+    const { props } = renderFlow({ capabilities: { gpioInput: { available: false, devicePath: "", reason: null }, sensors: { enabled: true, available: true, reason: null, supportedSensors: ["bh1750"] } } });
+    await userEvent.click(screen.getByRole("button", { name: /Sensors/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Template devices/ }));
+    await userEvent.click(screen.getByRole("button", { name: /BH1750 Light Sensor/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+    expect(screen.getByLabelText("I2C address")).toHaveValue("0x23");
+    expect(screen.queryByLabelText("Sensor model")).not.toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText("I2C bus"));
+    await userEvent.type(screen.getByLabelText("I2C bus"), "11");
+    expect(screen.getByRole("button", { name: "Next step (4)" })).toBeDisabled();
+    expect(screen.getByLabelText("I2C bus")).toHaveAttribute("aria-invalid", "true");
+    await userEvent.clear(screen.getByLabelText("I2C bus"));
+    await userEvent.type(screen.getByLabelText("I2C bus"), "1");
+    await userEvent.selectOptions(screen.getByLabelText("I2C address"), "0x5c");
+    await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
+    expect(screen.getByText("BH1750 (lux)")).toBeInTheDocument();
+    expect(screen.getByText("0x5c")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Add device" }));
+    await waitFor(() => expect(props.onCreated).toHaveBeenCalledWith(created));
+    expect(createDataSource).toHaveBeenCalledWith(expect.objectContaining({ type: "bh1750-sensor", config: { sensor: "bh1750", bus: 1, address: "0x5c" } }));
+  });
+
+  it("shows BH1750 prerequisites when sensors are disabled and a repair warning for an older helper", async () => {
+    const { rerender } = renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: /Sensors/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Template devices/ }));
+    expect(screen.queryByRole("button", { name: /BH1750 Light Sensor/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Enable I2C sensors in Devices/)).toBeInTheDocument();
+    rerender(<ToastProvider><AltAddDeviceFlow open capabilities={{ gpioInput: { available: false, devicePath: "", reason: null }, sensors: { enabled: true, available: true, reason: null, supportedSensors: ["bme280"] } }} onClose={vi.fn()} onCreated={vi.fn()} /></ToastProvider>);
+    await userEvent.click(screen.getByRole("button", { name: /Sensors/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Template devices/ }));
+    await userEvent.click(screen.getByRole("button", { name: /BH1750 Light Sensor/ }));
+    expect(screen.getByText("BH1750 helper support is missing")).toBeInTheDocument();
   });
 
   it("validates video capture settings and saves the selected mode and timing", async () => {
@@ -152,7 +207,7 @@ describe("AltAddDeviceFlow", () => {
   });
 
   it("shows boards, sensor templates, and actuators", async () => {
-    renderFlow();
+    renderFlow({ capabilities: { gpioInput: { available: false, devicePath: "", reason: null }, displays: { enabled: true, available: true, reason: null, supportedModels: ["pim576"] } } });
     await userEvent.click(screen.getByRole("button", { name: /Boards/ }));
     expect(screen.getByRole("button", { name: /ESP32/ })).toBeInTheDocument();
 
@@ -168,6 +223,7 @@ describe("AltAddDeviceFlow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     await userEvent.click(screen.getByRole("button", { name: /Actuators/ }));
     expect(screen.getByRole("button", { name: /GPIO LED/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /PIM576 SPI LCD/ })).toBeInTheDocument();
   });
 
   it("splits GPIO input setup into connection and behavior steps", async () => {

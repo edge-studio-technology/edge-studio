@@ -38,6 +38,7 @@ export type AutomationBlockType =
   | "send_transaction";
 
 export type ConditionOperator =
+  | "changed_by_at_least"
   | "equals"
   | "not_equals"
   | "greater_than"
@@ -59,7 +60,7 @@ export type AutomationBlock = {
   config: {
     sourceId?: string;
     targetId?: string;
-    action?: "pulse" | "send_request" | "publish";
+    action?: "pulse" | "send_request" | "publish" | "display_text";
     recipientAddressBookId?: string;
     tokenId?: "0x00";
     amount?: string;
@@ -133,6 +134,7 @@ export type AutomationBlockRun = {
   finishedAt: string | null;
   status: "running" | "success" | "failed" | "skipped";
   durationMs: number | null;
+  config?: AutomationBlock["config"] | null;
   input: unknown;
   output: unknown;
   error: string | null;

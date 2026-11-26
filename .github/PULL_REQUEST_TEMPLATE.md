@@ -17,6 +17,8 @@ Do not claim physical hardware verification from mocked tests. AI-assisted chang
 
 ## Documentation and review
 
+Before submitting, the contributor must confirm the statement below personally. Do not check it on someone else's behalf. Attach relevant verification evidence and screenshots to the PR itself, after checking them for private information; do not rely on evidence mentioned only in a chat.
+
 - [ ] I read [CONTRIBUTING.md](https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md), and have the right to submit this contribution under its MIT terms, preserving applicable third-party notices.
 - [ ] Relevant setup guides, configuration docs and tests are included; release-please will prepare the version and release notes.
 - [ ] The title uses a Conventional type, for example `feat(devices): support a new sensor`; breaking changes use `!` and explain migration.

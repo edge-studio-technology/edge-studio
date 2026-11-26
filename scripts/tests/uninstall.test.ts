@@ -15,8 +15,10 @@ import contextlib
 import io
 import json
 import os
+import select
 from pathlib import Path
 import sys
+import time
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
@@ -140,32 +142,34 @@ class UninstallTests(unittest.TestCase):
 
     def test_service_ownership_and_custom_firewall_values(self):
         path = self.units / "edge-studio-host-agent.service"
+        display = self.units / "edge-studio-display-helper.service"
         path.write_text("WorkingDirectory=" + str(self.app) + "\\nEnvironment=HOST_AGENT_PORT=48182\\nEnvironment=EDGE_STUDIO_DOCKER_SUBNET=172.31.0.0/24\\nExecStartPre=iptables -C INPUT\\n")
+        display.write_text("WorkingDirectory=" + str(self.app) + "\\nEnvironment=DISPLAY_HELPER_PORT=48183\\nEnvironment=EDGE_STUDIO_DOCKER_SUBNET=172.31.0.0/24\\nExecStartPre=iptables -C INPUT\\n")
         services = scope["owned_services"](self.app, self.units)
-        self.assertEqual(services, [path])
-        self.assertEqual(scope["firewall_rules"](services), [["INPUT", "-s", "172.31.0.0/24", "-p", "tcp", "--dport", "48182", "-j", "ACCEPT"]])
+        self.assertEqual(services, [path, display])
+        self.assertEqual(scope["firewall_rules"](services), [
+            ["INPUT", "-s", "172.31.0.0/24", "-p", "tcp", "--dport", "48182", "-j", "ACCEPT"],
+            ["INPUT", "-s", "172.31.0.0/24", "-p", "tcp", "--dport", "48183", "-j", "ACCEPT"],
+        ])
         with self.assertRaisesRegex(ValueError, "another installation"):
             scope["owned_services"](self.root / "another-install", self.units)
 
     def test_interactive_cancellation_and_dry_run_make_no_changes(self):
         for options, answers in [([], "1\\nwrong\\n"), ([], "2\\nUNINSTALL\\n"), (["--delete-data"], "wrong\\n"), (["--dry-run"], "")]:
             terminal = io.StringIO(answers)
-            # A bidirectional tty writes prompts without overwriting unread answers.
-            terminal.write = lambda _: None
             with patch.dict(scope, owned_services=lambda *a: [], docker_inventory=lambda _: ([], set())):
                 with patch.object(sys, "argv", ["uninstall", *options]), patch.object(sys, "platform", "linux"), patch.object(os, "geteuid", return_value=0, create=True), patch.dict(os.environ, APP_DIR=str(self.app)):
-                    with patch("builtins.open", return_value=terminal), contextlib.redirect_stdout(io.StringIO()), patch.dict(scope, cleanup=lambda *a: self.fail("Unconfirmed cleanup")):
+                    with patch("builtins.open", side_effect=lambda path, mode: terminal if mode == "r" else io.StringIO()), contextlib.redirect_stdout(io.StringIO()), patch.dict(scope, cleanup=lambda *a: self.fail("Unconfirmed cleanup")):
                         scope["main"]()
             self.assertTrue((self.app / "minima/wallet.dat").exists())
 
     def test_confirmed_default_keeps_data_and_confirmed_delete_requires_the_full_phrase(self):
         for answers, delete in [("\\nUNINSTALL\\n", False), ("2\\nDELETE EDGE STUDIO DATA\\n", True)]:
             terminal = io.StringIO(answers)
-            terminal.write = lambda _: None
             calls = []
             with patch.dict(scope, owned_services=lambda *a: [], docker_inventory=lambda _: ([], set()), cleanup=lambda *a: calls.append(a)):
                 with patch.object(sys, "argv", ["uninstall"]), patch.object(sys, "platform", "linux"), patch.object(os, "geteuid", return_value=0, create=True), patch.dict(os.environ, APP_DIR=str(self.app)):
-                    with patch("builtins.open", return_value=terminal), contextlib.redirect_stdout(io.StringIO()):
+                    with patch("builtins.open", side_effect=lambda path, mode: terminal if mode == "r" else io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
                         scope["main"]()
             self.assertEqual(len(calls), 1)
             self.assertEqual(self.app / ".env" in calls[0][5], delete)
@@ -200,9 +204,63 @@ class UninstallTests(unittest.TestCase):
 
     def test_confirmation_eof_cancels(self):
         terminal = io.StringIO()
-        terminal.write = lambda _: None
-        with self.assertRaisesRegex(RuntimeError, "cancelled"):
+        with patch("builtins.open", return_value=io.StringIO()), self.assertRaisesRegex(RuntimeError, "cancelled"):
             scope["confirm"](terminal, "Confirm: ")
+
+    def test_missing_controlling_terminal_prevents_cleanup(self):
+        with patch.dict(scope, owned_services=lambda *a: [], docker_inventory=lambda _: ([], set()), cleanup=lambda *a: self.fail("Unconfirmed cleanup")):
+            with patch.object(sys, "argv", ["uninstall", "--delete-data"]), patch.object(sys, "platform", "linux"), patch.object(os, "geteuid", return_value=0, create=True), patch.dict(os.environ, APP_DIR=str(self.app)):
+                with patch("builtins.open", side_effect=OSError("no controlling terminal")), self.assertRaisesRegex(RuntimeError, "interactive terminal is required"):
+                    scope["main"]()
+        self.assertTrue((self.app / "minima/wallet.dat").exists())
+
+    if sys.platform == "linux":
+        def test_piped_stdin_with_real_controlling_terminal_can_cancel_delete(self):
+            import pty
+            child, terminal = pty.fork()
+            if child == 0:
+                try:
+                    # Like curl | bash and the embedded Python heredoc: stdin is not a tty.
+                    pipe_read, pipe_write = os.pipe()
+                    os.close(pipe_write)
+                    os.dup2(pipe_read, 0)
+                    os.close(pipe_read)
+                    with patch.dict(scope, owned_services=lambda *a: [], docker_inventory=lambda _: ([], set()), cleanup=lambda *a: os._exit(2)):
+                        with patch.object(sys, "argv", ["uninstall", "--delete-data"]), patch.object(os, "geteuid", return_value=0), patch.dict(os.environ, APP_DIR=str(self.app)):
+                            scope["main"]()
+                    os._exit(0)
+                except BaseException as error:
+                    print(str(error), flush=True)
+                    os._exit(1)
+            output = b""
+            reaped = False
+            try:
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline:
+                    if select.select([terminal], [], [], 0.1)[0]:
+                        try:
+                            output += os.read(terminal, 65536)
+                        except OSError:
+                            break
+                        if b"Type 'DELETE EDGE STUDIO DATA'" in output:
+                            os.write(terminal, b"cancel\\n")
+                            break
+                self.assertIn(b"Type 'DELETE EDGE STUDIO DATA'", output)
+                while time.monotonic() < deadline:
+                    finished, status = os.waitpid(child, os.WNOHANG)
+                    if finished:
+                        reaped = True
+                        self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                        break
+                    time.sleep(0.01)
+                else:
+                    self.fail("Uninstaller did not exit after cancellation")
+            finally:
+                os.close(terminal)
+                if not reaped:
+                    os.kill(child, 9)
+                    os.waitpid(child, 0)
+            self.assertTrue((self.app / "minima/wallet.dat").exists())
 
 unittest.main()
 `,

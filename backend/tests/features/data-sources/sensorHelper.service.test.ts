@@ -10,7 +10,7 @@ const envMock = vi.hoisted(() => ({
 
 vi.mock("../../../src/config/env.js", () => ({ env: envMock }));
 
-const { getSensorHelperCapability, readBmeSensorSource } = await import("../../../src/features/data-sources/sensorHelper.service.js");
+const { getSensorHelperCapability, readBh1750SensorSource, readBmeSensorSource } = await import("../../../src/features/data-sources/sensorHelper.service.js");
 
 const fetchMock = vi.fn();
 
@@ -65,6 +65,31 @@ describe("getSensorHelperCapability", () => {
     assert.equal(result.enabled, true);
     assert.equal(result.available, false);
     assert.match(result.reason!, /Sensor helper is unavailable at http:\/\/sensor-helper: connection refused/);
+  });
+});
+
+describe("readBh1750SensorSource", () => {
+  it("preserves zero lux and hashes the complete reading with authenticated helper input", async () => {
+    const preview = { sensor: "bh1750", bus: 1, address: "0x23", lux: 0, readAt: "2026-11-19T00:00:00Z" };
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(preview)));
+    const result = await readBh1750SensorSource({ sensor: "bh1750", bus: 1, address: "0x23" });
+    assert.deepEqual(result.preview, preview);
+    assert.equal(result.canonicalBytes, `${JSON.stringify(preview, null, 2)}\n`);
+    const { sha3HashHex } = await import("../../../src/shared/crypto.js");
+    assert.equal(result.bytesHash, sha3HashHex(result.canonicalBytes));
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    assert.equal(url, "http://sensor-helper/read");
+    assert.equal((init.headers as Record<string, string>).Authorization, "Bearer sensor-token");
+    assert.deepEqual(JSON.parse(init.body as string), { sensor: "bh1750", bus: 1, address: "0x23" });
+  });
+
+  it("does not access the helper when support is disabled and propagates read failures", async () => {
+    envMock.sensorsEnabled = false;
+    await assert.rejects(readBh1750SensorSource({ sensor: "bh1750", bus: 1, address: "0x23" }), /disabled/);
+    assert.equal(fetchMock.mock.calls.length, 0);
+    envMock.sensorsEnabled = true;
+    fetchMock.mockRejectedValue(new Error("connection refused"));
+    await assert.rejects(readBh1750SensorSource({ sensor: "bh1750", bus: 1, address: "0x23" }), /connection refused/);
   });
 });
 
