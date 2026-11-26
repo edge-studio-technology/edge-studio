@@ -344,18 +344,19 @@ export function DraftBlockInspector({
             label: option.label,
           }))}
           onChange={(event) =>
-            onChange({ ...block.config, operator: event.target.value as ConditionOperator })
+            onChange({ ...block.config, operator: event.target.value as ConditionOperator, ...(event.target.value === "changed_by_at_least" ? { value: typeof block.config.value === "number" && block.config.value > 0 ? block.config.value : 1 } : {}) })
           }
         />
         {!operatorHasNoValue(block.config.operator ?? "equals") && (
           <InputField
-            label="Compare value"
+            label={block.config.operator === "changed_by_at_least" ? "Minimum change" : "Compare value"}
             value={compareValueInputText(block.config.value ?? true)}
             onChange={(event) =>
               onChange({ ...block.config, value: parseCompareValueInput(event.target.value) })
             }
           />
         )}
+        {block.config.operator === "changed_by_at_least" && <p className={mutedText}>Numeric input only. The first reading continues. Later readings must differ by at least this amount from the last successful workflow baseline, up or down. The baseline survives restarts, updates only after the whole workflow succeeds without being stopped, and resets when the condition source or threshold changes.</p>}
       </InspectorSection>
     );
   }
@@ -473,7 +474,7 @@ export function DraftBlockInspector({
 
   if (block.type === "control_output") {
     const selectedOutput = outputTargets.find((source) => source.id === block.config.targetId);
-    const selectedAction =
+    const selectedAction = selectedOutput?.type === "spi-display" ? "display_text" :
       selectedOutput?.type === "gpio-output"
         ? "pulse"
         : selectedOutput?.type === "http-output"
@@ -515,6 +516,10 @@ export function DraftBlockInspector({
             }
           />
         )}
+        {selectedOutput?.type === "spi-display" && <>
+          <TextareaField label="Display JSON" rows={6} value={block.config.bodyTemplateText ?? '{"title":"Edge Studio","text":"Hello from a workflow"}'} onChange={(event) => onChange({ targetId: selectedOutput.id, action: "display_text", bodyMode: "custom", bodyTemplateText: event.target.value })} />
+          <p className={mutedText}>Send a JSON object with text and an optional title. Insert a variable using <code>{"{{message}}"}</code> after a Set variable block. Text wraps; content that does not fit is rejected. This action updates the physical screen.</p>
+        </>}
         {selectedOutput?.type === "gpio-output" && (
           <p className={mutedText}>
             Selected device active state:{" "}
@@ -779,7 +784,7 @@ export function AttachedStampSettings({
           <SelectField
             label="Operator"
             value={conditionObject.operator ?? "equals"}
-            options={conditionOperatorOptions.map((option) => ({
+            options={conditionOperatorOptions.filter((option) => option.value !== "changed_by_at_least").map((option) => ({
               value: option.value,
               label: option.label,
             }))}

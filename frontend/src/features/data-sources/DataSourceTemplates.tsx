@@ -6,6 +6,7 @@ import {
   Globe2,
   HardDrive,
   Lightbulb,
+  Monitor,
   RefreshCw,
   Settings2,
   Radio,
@@ -106,6 +107,12 @@ export const inputTemplates: DataSourceTemplate[] = [
     config: { sensor: "bme680", bus: 1, address: "0x76" },
   },
   {
+    title: "BH1750 Light Sensor",
+    description: "Read ambient light in lux from an Adafruit BH1750 STEMMA QT I2C sensor",
+    type: "bh1750-sensor",
+    config: { sensor: "bh1750", bus: 1, address: "0x23" },
+  },
+  {
     title: "Device System Data",
     description: "Read local device specs, performance, network status, and coarse locale data",
     type: "device-system-data",
@@ -132,6 +139,12 @@ export const inputTemplates: DataSourceTemplate[] = [
 ];
 
 export const outputTemplates: DataSourceTemplate[] = [
+  {
+    title: "PIM576 SPI LCD",
+    description: "Display workflow text on Pimoroni's 1.54-inch 240×240 SPI screen",
+    type: "spi-display",
+    config: { model: "pim576", rotation: 0 },
+  },
   {
     title: "GPIO LED",
     description: "Low-current LED output target controlled by workflows",
@@ -169,6 +182,7 @@ export const outputTemplates: DataSourceTemplate[] = [
 ];
 
 export function templateIcon(template: DataSourceTemplate) {
+  if (template.type === "spi-display") return Monitor;
   if (template.config.profile === "pir-motion") return ShieldAlert;
   if (template.config.profile === "esp32-mqtt-board") return Cpu;
   if (template.type === "json-api" || template.type === "http-output") return Globe2;
@@ -177,6 +191,7 @@ export function templateIcon(template: DataSourceTemplate) {
   if (template.type === "gpio-output") return Lightbulb;
   if (template.type === "pi-camera") return Camera;
   if (template.type === "bme-sensor") return ThermometerSun;
+  if (template.type === "bh1750-sensor") return Lightbulb;
   if (template.type === "device-system-data") return HardDrive;
   return Cpu;
 }
@@ -203,9 +218,12 @@ export function LocalServicesCard({
   onDisableGpio,
   onEnableSensors,
   onDisableSensors,
+  onEnableDisplays,
+  onDisableDisplays,
   onEnableMqtt,
   onDisableMqtt,
   onSetupSensorPrerequisites,
+  onSetupDisplayPrerequisites,
   onRefreshHardware,
 }: {
   capabilities: DataSourceCapabilities | null;
@@ -217,9 +235,12 @@ export function LocalServicesCard({
   onDisableGpio?: () => Promise<void>;
   onEnableSensors?: () => Promise<void>;
   onDisableSensors?: () => Promise<void>;
+  onEnableDisplays?: () => Promise<void>;
+  onDisableDisplays?: () => Promise<void>;
   onEnableMqtt?: () => Promise<void>;
   onDisableMqtt?: () => Promise<void>;
   onSetupSensorPrerequisites?: () => Promise<void>;
+  onSetupDisplayPrerequisites?: () => Promise<void>;
   onRefreshHardware?: () => Promise<void>;
 }) {
   const [managerOpen, setManagerOpen] = useState(false);
@@ -235,6 +256,12 @@ export function LocalServicesCard({
   const lanUrl = `mqtt://${publicHost}:${publicPort}`;
   const internalUrl = mqtt?.internalUrl ?? broker?.internalUrl ?? "mqtt://mqtt:1883";
   const hardwareItems: HardwareItem[] = [
+    {
+      name: "displays", label: "SPI displays", title: "SPI displays",
+      description: "Install or disable the host helper for PIM576 text display workflows.",
+      icon: Monitor, capability: hostCapabilities.find((capability) => capability.name === "displays"),
+      onEnable: onEnableDisplays, onDisable: onDisableDisplays,
+    },
     {
       name: "camera",
       label: "Camera",
@@ -269,7 +296,7 @@ export function LocalServicesCard({
       name: "sensors",
       label: "I2C sensors",
       title: "I2C sensors",
-      description: "Install or disable the host sensor helper used by BME280/BME680 I2C sensor reads.",
+      description: "Install or disable the host sensor helper used by BME280/BME680 and BH1750 I2C sensor reads.",
       icon: ThermometerSun,
       capability: sensors,
       onEnable: onEnableSensors,
@@ -339,12 +366,12 @@ export function LocalServicesCard({
                 busy={busy}
                 lanUrl={lanUrl}
                 internalUrl={internalUrl}
-                onSetupSensorPrerequisites={onSetupSensorPrerequisites}
+                onSetupPrerequisites={selectedItem.name === "displays" ? onSetupDisplayPrerequisites : onSetupSensorPrerequisites}
                 onRefreshHardware={onRefreshHardware}
               />
             </div>
             <ErrorAlert status="warning" className="max-w-none py-detail-tight">
-              Optional hardware starts disabled by default. Edge Studio changes app service configuration only; OS interfaces and packages stay operator-managed.
+              Optional hardware starts disabled by default. OS interfaces and packages change only through an explicit prerequisite setup action or manual host setup; reboots remain operator-managed.
             </ErrorAlert>
           </div>
         </Modal>
@@ -427,14 +454,14 @@ function HardwareDetailPanel({
   busy,
   lanUrl,
   internalUrl,
-  onSetupSensorPrerequisites,
+  onSetupPrerequisites,
   onRefreshHardware,
 }: {
   item: HardwareItem;
   busy: boolean;
   lanUrl: string;
   internalUrl: string;
-  onSetupSensorPrerequisites?: () => Promise<void>;
+  onSetupPrerequisites?: () => Promise<void>;
   onRefreshHardware?: () => Promise<void>;
 }) {
   const capability = item.capability;
@@ -473,7 +500,7 @@ function HardwareDetailPanel({
           <CompactCopyRow label="Internal URL" value={internalUrl} description="Edge Studio MQTT configs" />
         </div>
       )}
-      <HardwarePrerequisites capability={capability} busy={busy} onSetupSensorPrerequisites={onSetupSensorPrerequisites} onRefreshHardware={onRefreshHardware} />
+      <HardwarePrerequisites capability={capability} busy={busy} onSetupPrerequisites={onSetupPrerequisites} onRefreshHardware={onRefreshHardware} />
     </section>
   );
 }
@@ -558,12 +585,12 @@ function StatusDot({ status }: { status: "good" | "neutral" | "warn" | "error" }
 function HardwarePrerequisites({
   capability,
   busy,
-  onSetupSensorPrerequisites,
+  onSetupPrerequisites,
   onRefreshHardware,
 }: {
   capability?: HostCapability;
   busy: boolean;
-  onSetupSensorPrerequisites?: () => Promise<void>;
+  onSetupPrerequisites?: () => Promise<void>;
   onRefreshHardware?: () => Promise<void>;
 }) {
   const [manualOpen, setManualOpen] = useState(false);
@@ -572,14 +599,14 @@ function HardwarePrerequisites({
   if (!guidance) return null;
   const isBlocking = capability.state === "missing_prerequisites";
   if (!isBlocking) return null;
-  const showSensorSetupChoice = capability.name === "sensors";
+  const showSetupChoice = capability.name === "sensors" || capability.name === "displays";
   return (
     <div className="border-stroke-secondary grid border-t">
-      {showSensorSetupChoice && (
+      {showSetupChoice && (
         <div className="gap-detail-next grid px-detail-close py-detail-next">
           <p className="type-meta text-text-secondary m-0">Choose automatic setup, or open manual steps if you prefer to run the commands yourself.</p>
           <div className="gap-detail-next flex flex-wrap">
-            <Button type="button" variant="primary" size="sm" disabled={busy || !onSetupSensorPrerequisites} onClick={() => void onSetupSensorPrerequisites?.()}>
+            <Button type="button" variant="primary" size="sm" disabled={busy || !onSetupPrerequisites} onClick={() => void onSetupPrerequisites?.()}>
               Automatic setup
             </Button>
             <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => setManualOpen(true)}>
@@ -588,18 +615,18 @@ function HardwarePrerequisites({
           </div>
         </div>
       )}
-    {(!showSensorSetupChoice || manualOpen) && (
+    {(!showSetupChoice || manualOpen) && (
       <Disclosure
       title={
         <span className="gap-detail-close flex flex-wrap items-center">
-          <span>{showSensorSetupChoice ? "Manual setup steps" : "Setup steps"}</span>
+          <span>{showSetupChoice ? "Manual setup steps" : "Setup steps"}</span>
           <Pill tone="warn">Action needed</Pill>
         </span>
       }
-      open={showSensorSetupChoice ? manualOpen : undefined}
+      open={showSetupChoice ? manualOpen : undefined}
       defaultOpen={false}
-      onToggle={(event) => showSensorSetupChoice && setManualOpen(event.currentTarget.open)}
-      className={`${showSensorSetupChoice ? "" : "border-stroke-secondary border-t"} bg-surface-primary p-0`}
+      onToggle={(event) => showSetupChoice && setManualOpen(event.currentTarget.open)}
+      className={`${showSetupChoice ? "" : "border-stroke-secondary border-t"} bg-surface-primary p-0`}
       summaryClassName="px-detail-close py-detail-next"
       contentClassName="grid gap-detail-next pb-detail-next"
     >
@@ -625,6 +652,11 @@ function HardwarePrerequisites({
 type PrerequisiteCommand = { label: string; command: string; description: string };
 
 const prerequisiteGuidance: Partial<Record<HostCapability["name"], PrerequisiteCommand[]>> = {
+  displays: [
+    { label: "Enable SPI", command: "sudo raspi-config", description: "On Raspberry Pi OS, select Interface Options -> SPI -> Enable. On Debian, enable dtparam=spi=on in the Pi boot configuration. Reboot if needed." },
+    { label: "Check host devices", command: "ls -l /dev/spidev0.0 /dev/gpiochip0", description: "Both devices must exist. The helper user needs the spi and gpio groups." },
+    { label: "Python environment prerequisites", command: "sudo apt-get update\nsudo apt-get install -y python3-venv python3-dev build-essential", description: "Run if virtualenv creation or native Python dependency builds fail. Enable/Repair then installs st7789 and Pillow in its managed environment." },
+  ],
   camera: [
     {
       label: "Install camera tools",

@@ -428,6 +428,29 @@ describe("WatchRuntimeOverview", () => {
 });
 
 describe("WatchRuntimeInspector", () => {
+  it("uses recorded configuration after the workflow block is edited", async () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block({
+          type: "set_variable",
+          config: { variableName: "newName", variableSource: "custom_json", valueJsonText: "99" },
+        })}
+        latestBlockRun={blockRun({
+          blockType: "set_variable",
+          config: { variableName: "savedName", variableSource: "custom_json", valueJsonText: "30" },
+          output: { output: { action: "set_variable", name: "savedName", value: 30 } },
+        })}
+        selectedRun={run()}
+      />,
+    );
+
+    expect(screen.getAllByText("savedName").length).toBeGreaterThan(0);
+    expect(screen.queryByText("newName")).not.toBeInTheDocument();
+    expect(screen.getAllByText("30").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("button", { name: "View recorded configuration" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent('"variableName": "savedName"');
+  });
+
   it("shows a prompt when no run is selected", () => {
     render(
       <WatchRuntimeInspector
@@ -518,8 +541,8 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("Trigger payload")).toBeInTheDocument();
     expect(screen.getByText("foo")).toBeInTheDocument();
     expect(screen.getByText("bar")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View pre-block context" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View post-block context" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View recorded input" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View recorded result" })).toBeInTheDocument();
   });
 
   it("summarizes fetch data source results with source, read, and hash", () => {
@@ -645,8 +668,10 @@ describe("WatchRuntimeInspector", () => {
           config: { source: "trigger", fieldPath: "event.kind", operator: "equals", value: "doorbell" },
         })}
         latestBlockRun={blockRun({
+          blockType: "if_payload_field_equals",
+          config: { source: "trigger", fieldPath: "event.kind", operator: "equals", value: "doorbell" },
           input: {
-            trigger: { type: "webhook", payload: { event: { kind: "doorbell" } } },
+            actual: "doorbell",
           },
           output: {
             output: {
@@ -690,6 +715,28 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("1.25 MINIMA")).toBeInTheDocument();
     expect(screen.getByText("0xabc")).toBeInTheDocument();
+  });
+
+  it("reads compact stamp proof details from the block result", () => {
+    render(
+      <MemoryRouter>
+        <WatchRuntimeInspector
+          selectedBlock={block({ type: "stamp_integritas" })}
+          latestBlockRun={blockRun({
+            blockType: "stamp_integritas",
+            config: { condition: null },
+            input: { data: { sourceName: "Sensor", readId: "read-1" }, hash: "hash-1" },
+            output: { output: { action: "stamped", proofId: "proof-1", proofUid: "uid-1" } },
+          })}
+          selectedRun={run()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByText("hash-1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("proof-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("uid-1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open proof" })).toHaveAttribute("href", expect.stringContaining("proof-1"));
   });
 
   it("hides null workflow-context fields in generic result summaries", () => {

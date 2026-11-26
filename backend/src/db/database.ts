@@ -101,6 +101,8 @@ export function runMigrations() {
   `);
 
   ensureColumn("automation_blocks", "parent_block_id", "TEXT");
+  ensureColumn("automation_blocks", "condition_baseline_value", "REAL");
+  ensureColumn("automation_blocks", "condition_baseline_key", "TEXT");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS automation_runs (
@@ -134,6 +136,7 @@ export function runMigrations() {
       status TEXT NOT NULL,
       duration_ms INTEGER,
       input_json TEXT,
+      config_json TEXT,
       output_json TEXT,
       error TEXT,
       FOREIGN KEY (run_id) REFERENCES automation_runs(id) ON DELETE CASCADE,
@@ -163,6 +166,8 @@ export function runMigrations() {
   `);
 
   migrateAutomationRunsToPreserveDeletedWorkflows();
+
+  ensureColumn("automation_block_runs", "config_json", "TEXT");
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_automation_runs_status_started
@@ -562,6 +567,9 @@ function migrateAutomationRunsToPreserveDeletedWorkflows() {
   const needsRunMigration = runWorkflowIdColumn?.notnull === 1 || runWorkflowForeignKey?.on_delete?.toUpperCase() === "CASCADE";
   const needsBlockRunMigration = blockRunWorkflowIdColumn?.notnull === 1 || blockRunWorkflowForeignKey?.on_delete?.toUpperCase() === "CASCADE";
   if (!needsRunMigration && !needsBlockRunMigration) return;
+  const hasConfigSnapshot = blockRunColumns.some((column) => column.name === "config_json");
+  const configColumn = hasConfigSnapshot ? ", config_json TEXT" : "";
+  const configCopyColumn = hasConfigSnapshot ? ", config_json" : "";
 
   const foreignKeysEnabled = db.pragma("foreign_keys", { simple: true }) as number;
   db.pragma("foreign_keys = OFF");
@@ -599,7 +607,7 @@ function migrateAutomationRunsToPreserveDeletedWorkflows() {
         finished_at TEXT,
         status TEXT NOT NULL,
         duration_ms INTEGER,
-        input_json TEXT,
+        input_json TEXT${configColumn},
         output_json TEXT,
         error TEXT,
         FOREIGN KEY (run_id) REFERENCES automation_runs_new(id) ON DELETE CASCADE,
@@ -618,11 +626,11 @@ function migrateAutomationRunsToPreserveDeletedWorkflows() {
 
       INSERT INTO automation_block_runs_new (
         id, run_id, workflow_id, block_id, order_index, block_type, block_label,
-        started_at, finished_at, status, duration_ms, input_json, output_json, error
+        started_at, finished_at, status, duration_ms, input_json${configCopyColumn}, output_json, error
       )
       SELECT
         id, run_id, workflow_id, block_id, order_index, block_type, block_label,
-        started_at, finished_at, status, duration_ms, input_json, output_json, error
+        started_at, finished_at, status, duration_ms, input_json${configCopyColumn}, output_json, error
       FROM automation_block_runs;
 
       DROP TABLE automation_block_runs;

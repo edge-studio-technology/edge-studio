@@ -13,6 +13,7 @@ type BlockRunRow = Record<string, unknown> & {
   run_id: string;
   input_json: string | null;
   output_json: string | null;
+  config_json: string | null;
   error: string | null;
 };
 
@@ -69,14 +70,16 @@ export function buildHistoryArchive() {
   }));
   const workflowBlockRuns = (db.prepare(`
     SELECT id, run_id, workflow_id, block_id, order_index, block_type, block_label, started_at,
-      finished_at, status, duration_ms, input_json, output_json, error
+      finished_at, status, duration_ms, input_json, output_json, config_json, error
     FROM automation_block_runs ORDER BY started_at ASC, id ASC
   `).all() as BlockRunRow[]).map((row) => ({
     ...row,
     input: parseAndRedact(row.input_json),
+    config: parseAndRedact(row.config_json),
     output: parseAndRedact(row.output_json),
     input_json: undefined,
     output_json: undefined,
+    config_json: undefined,
     error: redactNullable(row.error),
   }));
   const workflowInboxItems = (db.prepare(`

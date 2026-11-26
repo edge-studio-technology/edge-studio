@@ -44,6 +44,7 @@ describe("templateIcon", () => {
     expect(templateIcon(findTemplate("GPIO LED")).displayName).toBe("Lightbulb");
     expect(templateIcon(findTemplate("Raspberry Pi Camera")).displayName).toBe("Camera");
     expect(templateIcon(findTemplate("BME280 Environmental Sensor")).displayName).toBe("ThermometerSun");
+    expect(templateIcon(findTemplate("BH1750 Light Sensor")).displayName).toBe("Lightbulb");
     expect(templateIcon(findTemplate("Device System Data")).displayName).toBe("HardDrive");
   });
 });
@@ -80,7 +81,7 @@ describe("resolveTemplateConfig", () => {
 describe("LocalServicesCard", () => {
   it("shows the disabled hardware summary when there is no mqttBroker capability", () => {
     render(<LocalServicesCard capabilities={null} />);
-    expect(screen.getByText("0 of 4 enabled")).toBeInTheDocument();
+    expect(screen.getByText("0 of 5 enabled")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "MQTT: Disabled" })).toBeInTheDocument();
   });
 
@@ -90,7 +91,7 @@ describe("LocalServicesCard", () => {
       mqttBroker: { enabled: true, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
     };
     render(<LocalServicesCard capabilities={capabilities} hostCapabilities={enabledHostCapabilities} />);
-    expect(screen.getByText("4 of 4 enabled")).toBeInTheDocument();
+    expect(screen.getByText("4 of 5 enabled")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "MQTT: Available" })).toBeInTheDocument();
     expect(screen.queryByText("mqtt://pi.local:1883")).not.toBeInTheDocument();
 
@@ -192,6 +193,22 @@ describe("LocalServicesCard", () => {
     expect(screen.getByText("Reboot the Pi")).toBeInTheDocument();
     expect(screen.getByText(/sudo reboot/)).toBeInTheDocument();
     expect(screen.getByText(/ls -l \/dev\/i2c-1/)).toBeInTheDocument();
+  });
+
+  it("offers explicit automatic SPI setup alongside manual guidance without invoking I2C setup", async () => {
+    const onSetupDisplayPrerequisites = vi.fn().mockResolvedValue(undefined);
+    const onSetupSensorPrerequisites = vi.fn();
+    const hostCapabilities: HostCapability[] = [{ name: "displays", enabled: false, installed: false, available: false, state: "missing_prerequisites", reason: "Enable SPI on the host" }];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onSetupDisplayPrerequisites={onSetupDisplayPrerequisites} onSetupSensorPrerequisites={onSetupSensorPrerequisites} />);
+    expect(onSetupDisplayPrerequisites).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "SPI displays: Action required" }));
+    expect(screen.getByRole("button", { name: "Automatic setup" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Automatic setup" }));
+    expect(onSetupDisplayPrerequisites).toHaveBeenCalledOnce();
+    expect(onSetupSensorPrerequisites).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Manual setup" }));
+    expect(screen.getByText("Enable SPI")).toBeInTheDocument();
+    expect(screen.getByText("Python environment prerequisites")).toBeInTheDocument();
   });
 
   it("allows disabling an enabled capability even when prerequisites are missing", async () => {

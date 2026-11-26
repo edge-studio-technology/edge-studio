@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { db } from "../../db/database.js";
 import { serializeStructuredError, type StructuredError } from "../../shared/structured-error.js";
+import { conditionBaselineKey, type PendingConditionBaseline } from "./automationConditions.js";
 
 export type AutomationBlockType =
   | "manual_start"
@@ -61,6 +62,16 @@ export function listAutomationBlocks(workflowId: string) {
 
 export function getAutomationBlock(id: string) {
   return db.prepare("SELECT * FROM automation_blocks WHERE id = ?").get(id) as AutomationBlockRecord | undefined;
+}
+
+export function getConditionBaseline(workflowId: string, blockId: string, key: string): number | null {
+  const row = db.prepare("SELECT condition_baseline_value AS value FROM automation_blocks WHERE workflow_id = ? AND id = ? AND condition_baseline_key = ?").get(workflowId, blockId, key) as { value: number | null } | undefined;
+  return row?.value ?? null;
+}
+
+export function saveConditionBaselines(workflowId: string, updates: PendingConditionBaseline[]) {
+  const update = db.prepare("UPDATE automation_blocks SET condition_baseline_value = ?, condition_baseline_key = ? WHERE workflow_id = ? AND id = ? AND config_json = ?");
+  for (const baseline of updates) update.run(baseline.value, baseline.key, workflowId, baseline.blockId, baseline.configJson);
 }
 
 export function listDueScheduleWorkflows(nowIso: string) {
@@ -221,6 +232,9 @@ export function createAutomationBlock(workflowId: string, input: { type: Automat
 export function updateAutomationBlock(workflowId: string, blockId: string, input: { config?: unknown; enabled?: boolean }) {
   const current = db.prepare("SELECT * FROM automation_blocks WHERE id = ? AND workflow_id = ?").get(blockId, workflowId) as AutomationBlockRecord | undefined;
   if (!current) return undefined;
+  if (input.config !== undefined && conditionBaselineKey(JSON.parse(current.config_json) as unknown) !== conditionBaselineKey(input.config)) {
+    db.prepare("UPDATE automation_blocks SET condition_baseline_value = NULL, condition_baseline_key = NULL WHERE id = ? AND workflow_id = ?").run(blockId, workflowId);
+  }
   db.prepare(`
     UPDATE automation_blocks
     SET updated_at = ?, enabled = ?, config_json = ?, last_error = NULL

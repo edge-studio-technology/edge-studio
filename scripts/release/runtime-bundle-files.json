@@ -9,5 +9,7 @@
   "host-agent/edge_studio_host_agent.py",
   "camera-helper/edge_studio_camera_helper.py",
   "sensor-helper/edge_studio_sensor_helper.py",
+  "display-helper/edge_studio_display_helper.py",
+  "display-helper/requirements.lock",
   "docker/mosquitto/mosquitto.conf"
 ]

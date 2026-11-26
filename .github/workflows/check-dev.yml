@@ -24,3 +24,16 @@ jobs:
         run: npm --prefix backend outdated bcryptjs || echo "::warning::bcryptjs has a newer release; review upstream and bump the pin"
 
       - run: npm run check
+
+      - name: Test I2C helper and host setup
+        run: |
+          python3 -m unittest discover -s sensor-helper/tests -v
+          python3 -m unittest discover -s host-agent/tests -v
+      - name: Test SPI display rendering
+        run: |
+          python3 -m venv /tmp/edge-studio-display-tests
+          /tmp/edge-studio-display-tests/bin/python -m pip install 'Pillow==12.0.0'
+          /tmp/edge-studio-display-tests/bin/python -m unittest discover -s display-helper/tests -v
+      - name: Verify locked Pi display dependencies
+        run: |
+          python3 -m pip download --no-deps --require-hashes --platform manylinux_2_28_aarch64 --python-version 3.13 --implementation cp --abi cp313 -r display-helper/requirements.lock -d /tmp/edge-studio-display-dependencies

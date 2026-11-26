@@ -1,6 +1,6 @@
 import { env } from "../../config/env.js";
 import { sha3HashHex } from "../../shared/crypto.js";
-import type { BmeSensorConfig } from "./dataSources.service.js";
+import type { Bh1750SensorConfig, BmeSensorConfig } from "./dataSources.service.js";
 
 export type SensorHelperCapability = {
   enabled: boolean;
@@ -25,6 +25,14 @@ export async function getSensorHelperCapability(): Promise<SensorHelperCapabilit
 }
 
 export async function readBmeSensorSource(config: BmeSensorConfig) {
+  return readSensorSource(config);
+}
+
+export async function readBh1750SensorSource(config: Bh1750SensorConfig) {
+  return readSensorSource(config);
+}
+
+async function readSensorSource(config: BmeSensorConfig | Bh1750SensorConfig) {
   if (!env.sensorsEnabled) throw new Error("I2C sensor support is disabled. Enable it from Devices -> Hardware support.");
   const preview = await sensorHelperRequest("/read", config, env.sensorReadTimeoutMs);
   const canonicalBytes = `${JSON.stringify(preview, null, 2)}\n`;

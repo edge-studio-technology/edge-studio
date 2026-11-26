@@ -20,6 +20,7 @@ TOKEN = os.environ.get("HOST_AGENT_TOKEN", "")
 HOST_CAPABILITY_DEBUG = os.environ.get("HOST_CAPABILITY_DEBUG", "false")
 CAMERA_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-camera-helper.service")
 SENSOR_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-sensor-helper.service")
+DISPLAY_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-display-helper.service")
 COMPOSE_OVERRIDE_FILE = APP_DIR / "docker-compose.override.yml"
 GPIO_OVERRIDE_MARKER = "# Managed by Edge Studio host-agent for GPIO support."
 SUPPRESS_RESTARTS = False
@@ -27,6 +28,8 @@ HOST_RUNTIME_FILES = {
     "host-agent/edge_studio_host_agent.py": 0o644,
     "camera-helper/edge_studio_camera_helper.py": 0o644,
     "sensor-helper/edge_studio_sensor_helper.py": 0o644,
+    "display-helper/edge_studio_display_helper.py": 0o644,
+    "display-helper/requirements.lock": 0o644,
     "docker/mosquitto/mosquitto.conf": 0o644,
 }
 
@@ -501,7 +504,7 @@ def apply_sensors():
     sensor_python = sensor_venv / "bin" / "python"
     if not sensor_python.exists():
         run(["python3", "-m", "venv", "--system-site-packages", str(sensor_venv)])
-    run([str(sensor_python), "-m", "pip", "install", "bme680"], check=False)
+    run([str(sensor_python), "-m", "pip", "install", "bme680", "smbus2"], check=False)
 
     user = helper_user()
     supplementary_groups = "SupplementaryGroups=i2c" if run(["getent", "group", "i2c"], check=False).returncode == 0 else ""
@@ -649,8 +652,115 @@ def disable_mqtt():
     return {"capability": mqtt_status(), "restart": backend_restart, "service": restart}
 
 
+def setup_display_prerequisites():
+    if shutil.which("apt-get") is None or shutil.which("raspi-config") is None:
+        raise ValueError("Automatic SPI setup requires apt-get and raspi-config. Use the manual setup steps for this OS.")
+    steps = []
+    for label, command in [
+        ("Update package lists", ["apt-get", "update"]),
+        ("Install display Python prerequisites", ["apt-get", "install", "-y", "python3-venv", "python3-dev", "build-essential"]),
+        ("Enable SPI interface", ["raspi-config", "nonint", "do_spi", "0"]),
+    ]:
+        completed = run(command, check=False, timeout=300)
+        steps.append({"label": label, "ok": completed.returncode == 0})
+        if completed.returncode != 0:
+            raise ValueError(f"Automatic SPI setup failed during: {label}")
+    spi_exists = Path("/dev/spidev0.0").exists()
+    steps.append({"label": "Check /dev/spidev0.0", "ok": spi_exists})
+    return {"capability": display_status(), "steps": steps, "rebootRequired": not spi_exists}
+
+
+def display_status():
+    config = read_env()
+    enabled = is_truthy(config.get("ENABLE_DISPLAYS"))
+    checks = service_checks("edge-studio-display-helper.service", DISPLAY_SERVICE_FILE)
+    spi_exists = Path("/dev/spidev0.0").exists()
+    gpio_exists = Path("/dev/gpiochip0").exists()
+    python = APP_DIR / ".venv-display-helper" / "bin" / "python"
+    python_ready = python.exists() or (shutil.which("python3") is not None and run(["python3", "-c", "import venv, ensurepip"], check=False, timeout=5).returncode == 0)
+    dependencies = python.exists() and run([str(python), "-c", "import st7789; from PIL import ImageFont; ImageFont.load_default(size=20)"], check=False, timeout=10).returncode == 0
+    checks.update({"spiDeviceExists": spi_exists, "gpioDeviceExists": gpio_exists, "dependenciesAvailable": dependencies, "pythonVenvAvailable": python_ready})
+    available = enabled and spi_exists and gpio_exists and dependencies and checks["serviceActive"] and checks["serviceEnabled"]
+    if not spi_exists:
+        reason = "Enable SPI on the Pi host and reboot if /dev/spidev0.0 is missing."
+    elif not gpio_exists:
+        reason = "/dev/gpiochip0 is missing. This display requires a compatible Raspberry Pi GPIO interface."
+    elif not python_ready:
+        reason = "Python virtualenv prerequisites are missing. Use Automatic setup or the manual setup steps."
+    elif not enabled:
+        reason = "SPI display support is disabled."
+    elif not dependencies:
+        reason = "Display dependencies are missing. Repair SPI displays to install the managed helper environment."
+    elif not available:
+        reason = "The display helper service is not running. Repair SPI displays."
+    else:
+        reason = None
+    return {"name": "displays", "enabled": enabled, "installed": checks["serviceFileExists"], "available": available,
+            "state": "enabled" if available else "missing_prerequisites" if not spi_exists or not gpio_exists or not python_ready else "disabled" if not enabled else "failed",
+            "reason": reason, "checks": checks, "devicePath": "/dev/spidev0.0"}
+
+
+def apply_displays():
+    if not Path("/dev/spidev0.0").exists() or not Path("/dev/gpiochip0").exists():
+        raise ValueError("Enable host SPI and ensure /dev/spidev0.0 and /dev/gpiochip0 exist, then enable SPI displays.")
+    helper_dir = APP_DIR / "display-helper"
+    if not (helper_dir / "edge_studio_display_helper.py").exists() or not (helper_dir / "requirements.lock").exists():
+        raise ValueError("Display helper code is missing. Rerun the matching source installer to refresh host files.")
+    config = read_env()
+    token = config.get("DISPLAY_HELPER_TOKEN") or secrets.token_hex(32)
+    port = config.get("DISPLAY_HELPER_PORT", "38183")
+    if not port.isdigit() or not 1 <= int(port) <= 65535:
+        raise ValueError("DISPLAY_HELPER_PORT must be between 1 and 65535")
+    gateway = config.get("EDGE_STUDIO_DOCKER_GATEWAY", "172.30.0.1")
+    venv = APP_DIR / ".venv-display-helper"
+    python = venv / "bin" / "python"
+    if not python.exists():
+        run(["python3", "-m", "venv", "--system-site-packages", str(venv)])
+    result = run([str(python), "-m", "pip", "install", "--require-hashes", "-r", str(helper_dir / "requirements.lock")], check=False, timeout=300)
+    if result.returncode != 0:
+        raise ValueError("Display dependency installation failed. Check package-index connectivity and Python build prerequisites, then retry Repair.")
+    groups = [group for group in ("spi", "gpio") if run(["getent", "group", group], check=False).returncode == 0]
+    service = f"""[Unit]
+Description=Edge Studio SPI Display Helper
+After=network.target docker.service
+
+[Service]
+Type=simple
+User={helper_user()}
+SupplementaryGroups={' '.join(groups)}
+WorkingDirectory={APP_DIR}
+Environment=DISPLAY_HELPER_HOST={gateway}
+Environment=DISPLAY_HELPER_PORT={port}
+Environment=DISPLAY_HELPER_TOKEN={token}
+Environment=EDGE_STUDIO_DOCKER_SUBNET={config.get('EDGE_STUDIO_DOCKER_SUBNET', '172.30.0.0/24')}
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $DISPLAY_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $DISPLAY_HELPER_PORT -j ACCEPT; fi'
+ExecStart={python} {APP_DIR}/display-helper/edge_studio_display_helper.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+"""
+    write_text_atomic(DISPLAY_SERVICE_FILE, service, 0o600)
+    run(["systemctl", "daemon-reload"])
+    run(["systemctl", "enable", "edge-studio-display-helper.service"])
+    run(["systemctl", "restart", "edge-studio-display-helper.service"])
+    write_env({"ENABLE_DISPLAYS": "true", "DISPLAY_HELPER_TOKEN": token, "DISPLAY_HELPER_PORT": port,
+               "DISPLAY_HELPER_URL": f"http://{gateway}:{port}"})
+    return {"capability": display_status(), "restart": restart_backend(read_env())}
+
+
+def disable_displays():
+    if shutil.which("systemctl"):
+        run(["systemctl", "disable", "--now", "edge-studio-display-helper.service"])
+        unlink_if_exists(DISPLAY_SERVICE_FILE)
+        run(["systemctl", "daemon-reload"])
+    write_env({"ENABLE_DISPLAYS": "false"})
+    return {"capability": display_status(), "restart": restart_backend(read_env())}
+
+
 def all_capabilities():
-    return [camera_status(), gpio_status(), sensor_status(), mqtt_status()]
+    return [camera_status(), gpio_status(), sensor_status(), mqtt_status(), display_status()]
 
 
 def apply_host_runtime_update(artifact_bytes):
@@ -694,6 +804,8 @@ def restart_host_runtime_services(changed):
         restarts.append(restart_systemd_service("edge-studio-camera-helper.service"))
     if "sensor-helper/edge_studio_sensor_helper.py" in changed and is_truthy(config.get("ENABLE_SENSORS")):
         restarts.append(restart_systemd_service("edge-studio-sensor-helper.service"))
+    if "display-helper/edge_studio_display_helper.py" in changed and is_truthy(config.get("ENABLE_DISPLAYS")):
+        restarts.append(restart_systemd_service("edge-studio-display-helper.service"))
     if "docker/mosquitto/mosquitto.conf" in changed and is_truthy(config.get("ENABLE_MQTT_BROKER")):
         restarts.append({"service": "mqtt", **schedule_compose(config, ["up", "-d", "mqtt"])})
     if "host-agent/edge_studio_host_agent.py" in changed:
@@ -839,6 +951,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, {"item": sensor_status()})
             if path == "/capabilities/mqtt":
                 return self.send_json(200, {"item": mqtt_status()})
+            if path == "/capabilities/displays":
+                return self.send_json(200, {"item": display_status()})
             return self.send_json(404, {"error": "Not found"})
         except ValueError as error:
             return self.send_json(400, {"error": str(error), "capability": camera_status()})
@@ -873,6 +987,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, disable_sensors())
             if path == "/capabilities/sensors/setup-prerequisites":
                 return self.send_json(200, setup_sensor_prerequisites())
+            if path == "/capabilities/displays/apply":
+                return self.send_json(200, apply_displays())
+            if path == "/capabilities/displays/setup-prerequisites":
+                return self.send_json(200, setup_display_prerequisites())
+            if path == "/capabilities/displays/disable":
+                return self.send_json(200, disable_displays())
             if path == "/updates/host-runtime/apply":
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0:
@@ -893,6 +1013,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def cli_action(action, capability):
+    if capability == "displays":
+        if action == "apply":
+            return apply_displays()
+        if action == "disable":
+            return disable_displays()
     if action == "apply":
         if capability == "camera":
             return apply_camera()
@@ -919,7 +1044,7 @@ def parse_args():
     subparsers = parser.add_subparsers(dest="command")
     action_parser = subparsers.add_parser("capability", help="Apply or disable a hardware capability")
     action_parser.add_argument("action", choices=["apply", "disable"])
-    action_parser.add_argument("capability", choices=["camera", "gpio", "sensors", "mqtt"])
+    action_parser.add_argument("capability", choices=["camera", "gpio", "sensors", "mqtt", "displays"])
     action_parser.add_argument("--install-mode", action="store_true", help="Skip backend/Compose restarts; installer will start services later")
     return parser.parse_args()
 

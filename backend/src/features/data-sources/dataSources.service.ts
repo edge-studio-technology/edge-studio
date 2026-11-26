@@ -72,6 +72,12 @@ export type BmeSensorConfig = {
   address: "0x76" | "0x77";
 };
 
+export type Bh1750SensorConfig = {
+  sensor: "bh1750";
+  bus: number;
+  address: "0x23" | "0x5c";
+};
+
 export type DeviceSystemDataConfig = {
   includeSpecs: boolean;
   includePerformance: boolean;
@@ -111,6 +117,7 @@ export function parseJsonApiConfig(value: unknown): JsonApiConfig {
 }
 
 export function parseDataSourceConfig(type: string, value: unknown, existingConfig?: unknown) {
+  if (type === "spi-display") return parseSpiDisplayConfig(value);
   if (type === "webhook") return parseWebhookConfig(value, existingConfig);
   if (type === "mqtt") return parseMqttConfig(value);
   if (type === "http-output") return parseHttpOutputConfig(value);
@@ -119,8 +126,18 @@ export function parseDataSourceConfig(type: string, value: unknown, existingConf
   if (type === "gpio-output") return parseGpioOutputConfig(value);
   if (type === "pi-camera") return parsePiCameraConfig(value);
   if (type === "bme-sensor") return parseBmeSensorConfig(value);
+  if (type === "bh1750-sensor") return parseBh1750SensorConfig(value);
   if (type === "device-system-data") return parseDeviceSystemDataConfig(value);
   return parseJsonApiConfig(value);
+}
+
+export function parseSpiDisplayConfig(value: unknown) {
+  const config = value as { model?: unknown; rotation?: unknown } | null;
+  const model = config?.model ?? "pim576";
+  const rotation = config?.rotation ?? 0;
+  if (model !== "pim576") throw new Error("config.model must be pim576");
+  if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270) throw new Error("config.rotation must be 0, 90, 180 or 270");
+  return { model: "pim576" as const, rotation };
 }
 
 export function parseWebhookConfig(value: unknown, existingConfig?: unknown): WebhookConfig {
@@ -223,6 +240,19 @@ export function parseBmeSensorConfig(value: unknown): BmeSensorConfig {
 
   if (sensor !== "bme280" && sensor !== "bme680") throw new Error("config.sensor must be bme280 or bme680");
   if (!Number.isInteger(bus) || bus < 0 || bus > 10) throw new Error("config.bus must be an I2C bus number from 0 to 10");
+
+  return { sensor, bus, address };
+}
+
+export function parseBh1750SensorConfig(value: unknown): Bh1750SensorConfig {
+  const config = value as Partial<Bh1750SensorConfig> | undefined;
+  const sensor = config?.sensor ?? "bh1750";
+  const bus = config?.bus ?? 1;
+  const address = config?.address ?? "0x23";
+
+  if (sensor !== "bh1750") throw new Error("config.sensor must be bh1750");
+  if (!Number.isInteger(bus) || bus < 0 || bus > 10) throw new Error("config.bus must be an I2C bus number from 0 to 10");
+  if (address !== "0x23" && address !== "0x5c") throw new Error("config.address must be 0x23 or 0x5c");
 
   return { sensor, bus, address };
 }

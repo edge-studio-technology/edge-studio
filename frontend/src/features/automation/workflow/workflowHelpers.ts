@@ -22,6 +22,7 @@ import { blockHelp } from "./workflowBlockHelp";
 export const WORKFLOW_INTERVAL_OPTIONS = [10, 30, 60, 300, 900, 3600] as const;
 
 export const conditionOperatorOptions: { value: ConditionOperator; label: string }[] = [
+  { value: "changed_by_at_least", label: "changed by at least" },
   { value: "equals", label: "equals" },
   { value: "not_equals", label: "does not equal" },
   { value: "greater_than", label: "is greater than" },
@@ -501,6 +502,7 @@ export function examplePayload(workflow: AutomationWorkflow) {
 }
 
 export function sourceLabel(source: DataSource) {
+  if (source.type === "spi-display") return "PIM576 SPI LCD";
   if (source.type === "webhook") return "Webhook receive URL";
   if (source.type === "mqtt")
     return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
@@ -521,6 +523,7 @@ export function sourceLabel(source: DataSource) {
     return `${source.config.sensor ?? "bme280"} i2c-${source.config.bus ?? 1} ${source.config.address ?? "0x76"}`;
   }
   if (source.type === "device-system-data") return "device-system-data:local";
+  if (source.type === "bh1750-sensor") return `bh1750 i2c-${source.config.bus ?? 1} ${source.config.address ?? "0x23"}`;
   return source.config.url ?? "HTTP JSON Source";
 }
 
@@ -528,17 +531,20 @@ export function isReadableSource(source: DataSource) {
   return (
     source.type === "json-api" ||
     source.type === "bme-sensor" ||
+    source.type === "bh1750-sensor" ||
     source.type === "device-system-data"
   );
 }
 
 export function isOutputTarget(source: DataSource) {
+  if (source.type === "spi-display") return true;
   return (
     source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output"
   );
 }
 
 export function outputActionForTarget(source: DataSource | undefined) {
+  if (source?.type === "spi-display") return "display_text";
   if (source?.type === "http-output") return "send_request";
   if (source?.type === "mqtt-output") return "publish";
   return "pulse";
@@ -549,6 +555,7 @@ export function defaultOutputBlockConfig(
   durationMs: number,
 ): AutomationBlock["config"] {
   if (source?.type === "gpio-output") return { targetId: source.id, action: "pulse", durationMs };
+  if (source?.type === "spi-display") return { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: '{"title":"Edge Studio","text":"Hello from a workflow"}' };
   if (source?.type === "http-output") {
     return {
       targetId: source.id,
@@ -573,6 +580,7 @@ export function retargetOutputBlockConfig(
   target: DataSource | undefined,
 ): AutomationBlock["config"] {
   if (!target) return { ...config, targetId: "" };
+  if (target.type === "spi-display") return defaultOutputBlockConfig(target, 0);
   if (target.type === "gpio-output")
     return { targetId: target.id, action: "pulse", durationMs: config.durationMs ?? 500 };
   if (target.type !== "http-output" && target.type !== "mqtt-output")

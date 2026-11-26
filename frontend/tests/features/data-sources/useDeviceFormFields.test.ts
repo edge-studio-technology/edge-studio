@@ -2,8 +2,25 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useDeviceFormFields } from "../../../src/features/data-sources/useDeviceFormFields";
 import type { DataSource, DataSourceTemplate } from "../../../src/features/data-sources/dataSourceTypes";
+import { buildDeviceConfigInput } from "../../../src/features/data-sources/buildDeviceConfig";
 
 describe("useDeviceFormFields", () => {
+  it("round trips the saved display rotation without introducing unrelated fields", () => {
+    const { result } = renderHook(() => useDeviceFormFields());
+    act(() => result.current.fillFromSource({ id: "lcd", name: "Screen", type: "spi-display", config: { model: "pim576", rotation: 270 } } as DataSource));
+    expect(buildDeviceConfigInput(result.current.fields, {})).toEqual({ model: "pim576", rotation: 270 });
+    act(() => result.current.reset());
+    expect(result.current.fields.displayRotation).toBe(0);
+  });
+  it("round trips saved BH1750 editing and keeps BME defaults separate", () => {
+    const { result } = renderHook(() => useDeviceFormFields());
+    act(() => result.current.fillFromSource({ id: "light", name: "Room light", description: "", type: "bh1750-sensor", config: { sensor: "bh1750", bus: 1, address: "0x5c" } } as DataSource));
+    expect(buildDeviceConfigInput(result.current.fields, {})).toEqual({ sensor: "bh1750", bus: 1, address: "0x5c" });
+    act(() => result.current.fillFromTemplate({ title: "Light", description: "", type: "bh1750-sensor", config: {} }));
+    expect(result.current.fields.bmeAddress).toBe("0x23");
+    act(() => result.current.fillFromTemplate({ title: "BME", description: "", type: "bme-sensor", config: {} }));
+    expect(buildDeviceConfigInput(result.current.fields, {})).toEqual({ sensor: "bme280", bus: 1, address: "0x76" });
+  });
   it("starts with default field values", () => {
     const { result } = renderHook(() => useDeviceFormFields());
     const { fields } = result.current;

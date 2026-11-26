@@ -62,7 +62,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0017](./adr/0017-outbound-and-upload-resource-limits.md) | Clamped egress, upload, and MQTT limits; nginx upload limit derived from backend settings |
 | [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via fixed host-agent actions; uninstall through a confirmed host-terminal operation |
 | [0021](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`; no public default, no secret migration |
-| [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: credential redaction, opt-in per-workflow/age retention, 1,000 privileged runs/hour budget |
+| [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: redaction, opt-in retention, 1,000/hour budget, persistent change baselines |
 | [0024](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries, sidebar overlay below 1024, sticky table actions |
 | [0025](./adr/0025-error-state-scope-tiers.md) | Error presentation by scope: content state, alert, toast, field error |
 | [0027](./adr/0027-static-guided-tour.md) | Static first-visit guided tour, seen flag per browser, replay from Settings |
@@ -147,6 +147,8 @@ Start a public source contribution at [CONTRIBUTING.md](../CONTRIBUTING.md). The
 | [guides/contributor-trial.md](./guides/contributor-trial.md) | Independent contributor and physical integration evidence checklist |
 | [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT board firmware |
 | [guides/bme280-sensor.md](./guides/bme280-sensor.md) | BME280/BME680 I2C sensor setup |
+| [guides/bh1750-sensor.md](./guides/bh1750-sensor.md) | Adafruit BH1750 direct-Pi I2C lux readings, setup and physical verification status |
+| [guides/pim576-display.md](./guides/pim576-display.md) | Pimoroni SPI LCD text output, fixed wiring, custom-variable workflow and fork-to-Pi verification |
 | [guides/tester-device-workflows.md](./guides/tester-device-workflows.md) | Short tester matrix for Pi and PC device/workflow tests |
 | [guides/pi-benchmark.md](./guides/pi-benchmark.md) | Benchmarking Edge Studio on a Pi for the wiki hardware page |
 | [guides/minima-testnet.md](./guides/minima-testnet.md) | Dev-only private Minima testnet on a dev Pi for wallet testing |

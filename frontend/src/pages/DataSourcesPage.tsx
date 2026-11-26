@@ -43,6 +43,7 @@ import {
   type DeviceGuideAction,
 } from "../features/data-sources/deviceSetupGuides";
 import { Esp32SetupGuide } from "../features/data-sources/Esp32FirmwareSetup";
+import { enableDisplaySupport, disableDisplaySupport, setupDisplayPrerequisites } from "../features/data-sources/dataSourcesApi";
 import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
 
 const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
@@ -244,6 +245,42 @@ export function DataSourcesPage() {
   function needsHardwareRepair(name: HostCapability["name"]) {
     const capability = hostCapabilities.find((item) => item.name === name);
     return Boolean(capability?.enabled && !capability.available);
+  }
+
+  async function enableDisplayHardware() {
+    await runHardwareAction(() => enableDisplaySupport(), {
+      modalTitle: "Enabling or repairing SPI displays", progressTitle: "Installing display support",
+      description: "Installing the managed display driver and restarting the helper. First setup can take several minutes.",
+    }, { name: "displays", enabled: true, available: true });
+  }
+
+  async function setupDisplayHardwarePrerequisites() {
+    setBusy(true);
+    setHardwareOperation({
+      modalTitle: "Setting up SPI prerequisites", progressTitle: "Applying host setup",
+      description: "Installing Python prerequisites and enabling the Pi SPI interface. This can take several minutes; any required reboot remains your choice.",
+    });
+    try {
+      const response = await setupDisplayPrerequisites();
+      await refresh();
+      showToast({ tone: response.rebootRequired ? "warning" : "success",
+        title: response.rebootRequired ? "SPI setup applied, reboot required" : "SPI setup applied",
+        message: response.rebootRequired ? "Reboot the Pi, then refresh Hardware support and enable SPI displays." : "Refresh Hardware support, then enable SPI displays.",
+      });
+    } catch (error) {
+      showToast({ tone: "error", title: "Automatic SPI setup failed", message: error instanceof Error ? error.message : "Unknown error" });
+      await refresh().catch(() => undefined);
+    } finally {
+      setHardwareOperation(null);
+      setBusy(false);
+    }
+  }
+
+  async function disableDisplayHardware() {
+    await runHardwareAction(() => disableDisplaySupport(), {
+      modalTitle: "Disabling SPI displays", progressTitle: "Stopping display support",
+      description: "Stopping the helper and future display updates. The panel may retain its last image until power is removed.",
+    }, { name: "displays", enabled: false });
   }
 
   async function enableCameraHardware() {
@@ -456,7 +493,7 @@ export function DataSourcesPage() {
   }
 
   const setupGuideBme680SupportWarning = setupGuideSource
-    ? bme680SupportWarning(setupGuideSource, capabilities)
+    ? sensorSupportWarning(setupGuideSource, capabilities)
     : null;
 
   return (
@@ -473,8 +510,11 @@ export function DataSourcesPage() {
         onEnableGpio={enableGpioHardware}
         onDisableGpio={disableGpioHardware}
         onEnableSensors={enableSensorHardware}
+        onEnableDisplays={enableDisplayHardware}
+        onDisableDisplays={disableDisplayHardware}
         onDisableSensors={disableSensorHardware}
         onSetupSensorPrerequisites={setupSensorHardwarePrerequisites}
+        onSetupDisplayPrerequisites={setupDisplayHardwarePrerequisites}
         onEnableMqtt={enableMqttHardware}
         onDisableMqtt={disableMqttHardware}
         onRefreshHardware={refreshHardwareStatus}
@@ -622,7 +662,7 @@ export function DataSourcesPage() {
           busy={busy}
           loading={initialLoading}
           onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
-          onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
+          onTestOutput={(source) => run(() => testDataSourceOutput(source.id), source.type === "spi-display" ? "Test text sent to display" : "Test pulse sent")}
           onOpenSetupGuide={setSetupGuideSource}
           onEdit={editSource}
           onDelete={setDeleteTarget}
@@ -646,7 +686,10 @@ function guideWorkflowIdsForSource(source: DataSource, workflowIds: Record<strin
   );
 }
 
-function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabilities | null) {
+function sensorSupportWarning(source: DataSource, capabilities: DataSourceCapabilities | null) {
+  if (source.type === "bh1750-sensor" && capabilities?.sensors?.available && !capabilities.sensors.supportedSensors?.includes("bh1750")) {
+    return "The sensor helper is not reporting BH1750 support. Repair I2C sensors from Devices -> Hardware support to refresh the helper and install smbus2.";
+  }
   if (source.type !== "bme-sensor" || source.config.sensor !== "bme680") return null;
   if (!capabilities?.sensors?.enabled || capabilities.sensors.available === false) return null;
   const supportedSensors = capabilities.sensors.supportedSensors;

@@ -6,7 +6,10 @@ alwaysApply: false
 
 # Docker / Pi Rules
 
+- PIM576 text output uses the opt-in display-helper service (`ENABLE_DISPLAYS=true`), bound to the configured Docker gateway with a backend-only token; never mount SPI/GPIO into the backend for display output. Preserve `.venv-display-helper`, its token and port across installer refreshes. First adoption on an older host agent requires an installer refresh to install the new helper file; later signed artifacts include it in their fixed allowlist.
+
 - UI is exposed on HTTPS at `${FRONTEND_PORT:-8080}` (container port 443) with a self-signed cert in `${DATA_DIR:-./data}/certs`.
+- SPI OS prerequisite setup is a separate explicit admin Hardware support action, like I2C setup: fixed apt-get Python prerequisites and raspi-config SPI enablement, with manual fallback and a reported reboot requirement. Ordinary display Enable/Repair must not silently run OS setup or reboot the host.
 - Backend is internal behind frontend `/api` proxy.
 - SQLite data lives in `${DATA_DIR:-./data}` mounted to `/data`.
 - Minima data lives in `${MINIMA_DATA_DIR:-./minima}`.
@@ -15,7 +18,7 @@ alwaysApply: false
 - The root-owned host agent is installed by `install.sh` and exposes only token-protected, allowlisted hardware capability actions to the backend; never add generic shell, package, file, or service-management endpoints.
 - GPIO input requires explicit `/dev/gpiochip0` device access and `gpiomon`; keep it optional, input-only, and documented as host hardware access.
 - Raspberry Pi Camera capture uses the opt-in host-side Python camera helper (`ENABLE_CAMERA=true`) instead of camera CLI commands inside the backend container; keep it token-protected, reachable only from the configured Docker subnet where possible, and document privacy impact.
-- BME280/BME680 sensor reads use the opt-in host-side Python sensor helper (`ENABLE_SENSORS=true`) instead of mounting `/dev/i2c-*` into the backend container; keep it token-protected, narrow, and documented as host I2C hardware access.
+- BME280/BME680 and BH1750 sensor reads use the opt-in host-side Python sensor helper (`ENABLE_SENSORS=true`) instead of mounting `/dev/i2c-*` into the backend container; keep it token-protected, narrow, and documented as host I2C hardware access. Enable/repair installs smbus2 for BH1750 in the existing managed helper virtualenv.
 - The optional local MQTT broker uses the `mqtt` Compose profile and exposes `${MQTT_PUBLIC_PORT:-1883}` only when explicitly enabled.
 - The Edge Studio Compose network uses a configured subnet/gateway so containers have a stable route to host helpers after reboot/redeploy.
 - `${UPDATE_AGENT_STATE_DIR:-./update-agent-state}` is mounted read-write into `update-agent` at `/state` and read-only into `backend` at `/update-agent-state` — the backend reads `last-applied-manifest.json` from it as the single source of truth for the app version reported in feedback submissions (see the Update Agent rules), never writes to it.

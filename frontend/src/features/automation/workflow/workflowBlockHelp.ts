@@ -296,7 +296,7 @@ export const workflowBlockHelp = {
       {
         label: "Operator",
         description:
-          "The comparison to run. Exists and does not exist only check whether the field is present; other operators compare against the value below.",
+          "The comparison to run. Exists and does not exist check presence. Changed by at least compares a finite number against its last successful workflow baseline, up or down.",
         required: true,
         example: "equals",
       },
@@ -304,14 +304,21 @@ export const workflowBlockHelp = {
         label: "Compare value",
         description:
           'The value to compare against. Values are parsed as JSON when possible, so true, 25, and "ready" are different values.',
-        shownWhen: "Operator is not exists or does not exist",
+        shownWhen: "Operator is not exists, does not exist or changed by at least",
         example: "true",
+      },
+      {
+        label: "Minimum change",
+        description: "A positive finite number. The first reading passes; later readings compare against the persisted baseline. Small changes accumulate until the threshold is reached.",
+        shownWhen: "Operator is changed by at least",
+        example: "1",
       },
     ],
     configuration: [
       "Choose trigger or variable source.",
       "Enter the field path and comparison operator.",
       "Enter a comparison value when the operator needs one.",
+      "For Changed by at least, the baseline advances only after the entire workflow succeeds without stopping. Failures retain it for the next attempt. Editing the source, operator or threshold resets it; unrelated saves preserve it.",
     ],
     outputs: [
       "Allows later blocks to continue when the condition passes.",

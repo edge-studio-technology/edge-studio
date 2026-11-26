@@ -13,6 +13,18 @@ export async function getHostCapabilities() {
   return getJson<{ items: HostCapability[] }>("/api/host-capabilities");
 }
 
+export async function enableDisplaySupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/displays/enable");
+}
+
+export async function disableDisplaySupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/displays/disable");
+}
+
+export async function setupDisplayPrerequisites() {
+  return postJson<{ capability: HostCapability; steps: Array<{ label: string; ok: boolean }>; rebootRequired: boolean }>("/api/host-capabilities/displays/setup-prerequisites");
+}
+
 export async function enableCameraSupport() {
   return postJson<{ capability: HostCapability; warning?: string | null }>(
     "/api/host-capabilities/camera/enable",

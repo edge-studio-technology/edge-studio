@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
+import { conditionBaselineKey } from "../../../src/features/automation/automationConditions.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 import { WORKFLOW_RUN_BUDGET_MAX_RUNS } from "../../../src/features/automation/automation.policy.js";
@@ -13,6 +15,7 @@ const {
   sendMultipartMediaOutputMock,
   serializeDataSourceMock,
   readBmeSensorSourceMock,
+  readBh1750SensorSourceMock,
   pulseGpioOutputMock,
   publishMqttOutputMock,
   capturePiCameraMock,
@@ -27,6 +30,7 @@ const {
   sendMultipartMediaOutputMock: vi.fn(),
   serializeDataSourceMock: vi.fn(),
   readBmeSensorSourceMock: vi.fn(),
+  readBh1750SensorSourceMock: vi.fn(),
   pulseGpioOutputMock: vi.fn(),
   publishMqttOutputMock: vi.fn(),
   capturePiCameraMock: vi.fn(),
@@ -40,6 +44,8 @@ vi.mock("../../../src/features/data-sources/dataSources.service.js", () => ({
   parseJsonApiConfig: (value: unknown) => value,
   parseHttpOutputConfig: (value: unknown) => value,
   parseBmeSensorConfig: (value: unknown) => value,
+  parseBh1750SensorConfig: (value: unknown) => value,
+  parseSpiDisplayConfig: (value: unknown) => value,
   parseDeviceSystemDataConfig: (value: unknown) => value,
   readJsonApiSource: readJsonApiSourceMock,
   readDeviceSystemDataSource: readDeviceSystemDataSourceMock,
@@ -49,7 +55,8 @@ vi.mock("../../../src/features/data-sources/dataSources.service.js", () => ({
 }));
 
 vi.mock("../../../src/features/data-sources/sensorHelper.service.js", () => ({
-  readBmeSensorSource: readBmeSensorSourceMock
+  readBmeSensorSource: readBmeSensorSourceMock,
+  readBh1750SensorSource: readBh1750SensorSourceMock
 }));
 
 vi.mock("../../../src/features/data-sources/gpioOutput.service.js", () => ({
@@ -116,6 +123,7 @@ beforeEach(() => {
   sendMultipartMediaOutputMock.mockReset();
   serializeDataSourceMock.mockReset();
   readBmeSensorSourceMock.mockReset();
+  readBh1750SensorSourceMock.mockReset();
   pulseGpioOutputMock.mockReset();
   publishMqttOutputMock.mockReset();
   capturePiCameraMock.mockReset();
@@ -151,6 +159,153 @@ function makeRecipient() {
 function createSource(type: string, config: unknown, name = "Source") {
   return dataSourcesRepo.createDataSource({ name, type, config });
 }
+
+describe("PIM576 custom-variable workflow", () => {
+  it("interpolates its own variable and sends it through the real display provider with durable output history", async () => {
+    const env = (await import("../../../src/config/env.js")).env;
+    const saved = { enabled: env.displaysEnabled, token: env.displayHelperToken };
+    env.displaysEnabled = true;
+    env.displayHelperToken = "display-token";
+    const fetch = vi.fn().mockResolvedValue(new Response('{}'));
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const source = dataSourcesRepo.createDataSource({ name: "Screen", type: "spi-display", config: { model: "pim576", rotation: 0 } });
+      const workflow = makeWorkflow([
+        { type: "manual_start", config: {} },
+        { type: "set_variable", config: { variableName: "message", variableSource: "custom_json", valueJsonText: '"Hello screen"' } },
+        { type: "control_output", config: { targetId: source.id, action: "display_text", bodyMode: "custom", bodyTemplateText: '{"text":"{{message}}"}' } },
+      ]);
+      const result = await service.runAutomationWorkflow(workflow.id);
+      assert.equal(result.workflow.lastError, null);
+      assert.deepEqual(JSON.parse(fetch.mock.calls[0][1].body).content, { title: "", text: "Hello screen" });
+      const block = db.prepare("SELECT output_json FROM automation_block_runs WHERE workflow_id = ? AND block_type = 'control_output'").get(workflow.id) as { output_json: string };
+      assert.match(block.output_json, /Hello screen/);
+      assert.equal(readJsonApiSourceMock.mock.calls.length, 0);
+    } finally {
+      env.displaysEnabled = saved.enabled;
+      env.displayHelperToken = saved.token;
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("persisted change-threshold workflows", () => {
+  function changeWorkflow(stopLater = false) {
+    const output = createSource("http-output", { url: "https://example.com/output", method: "POST" }, "Output");
+    const workflow = makeWorkflow([
+      { type: "manual_start", config: {} },
+      { type: "set_variable", config: { variableName: "reading", variableSource: "custom_json", valueJsonText: "10" } },
+      { type: "if_payload_field_equals", config: { source: "variable", variableName: "reading", operator: "changed_by_at_least", value: 1 } },
+      ...(stopLater ? [{ type: "if_payload_field_equals", config: { source: "variable", variableName: "reading", operator: "greater_than", value: 10000 } }] : []),
+      { type: "control_output", config: { targetId: output.id, action: "send_request", bodyMode: "none" } },
+    ]);
+    const blocks = workflowRepo.listAutomationBlocks(workflow.id);
+    const variable = blocks[1];
+    const condition = blocks[2];
+    const key = conditionBaselineKey(JSON.parse(condition.config_json));
+    return { workflow, condition, key,
+      setReading: (value: unknown) => workflowRepo.updateAutomationBlock(workflow.id, variable.id, { config: { variableName: "reading", variableSource: "custom_json", valueJsonText: JSON.stringify(value) } }),
+      baseline: () => workflowRepo.getConditionBaseline(workflow.id, condition.id, key),
+    };
+  }
+
+  it("passes the first reading, accumulates small changes and handles decreases", async () => {
+    const { workflow, setReading, baseline } = changeWorkflow();
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), 10);
+    setReading(10.83);
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), 10);
+    assert.equal(sendHttpOutputMock.mock.calls.length, 1);
+    setReading(11.67);
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), 11.67);
+    setReading(10);
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), 10);
+    assert.equal(sendHttpOutputMock.mock.calls.length, 3);
+    assert.equal((db.prepare("SELECT COUNT(*) AS n FROM automation_workflow_budget_events WHERE workflow_id = ?").get(workflow.id) as { n: number }).n, 3);
+  });
+
+  it("does not advance after failed output and retries the same reading on the next run", async () => {
+    const { workflow, setReading, baseline } = changeWorkflow();
+    await service.runAutomationWorkflow(workflow.id);
+    setReading(12);
+    sendHttpOutputMock.mockRejectedValueOnce(new Error("output unavailable"));
+    await assert.rejects(service.runAutomationWorkflow(workflow.id), /output unavailable/);
+    assert.equal(baseline(), 10);
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), 12);
+  });
+
+  it("does not commit pending baselines when a later condition stops the workflow", async () => {
+    const { workflow, baseline } = changeWorkflow(true);
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), null);
+    assert.equal(sendHttpOutputMock.mock.calls.length, 0);
+  });
+
+  it("persists independently of run history and reloads the baseline from SQLite", async () => {
+    const { workflow, condition, setReading, baseline } = changeWorkflow();
+    await service.runAutomationWorkflow(workflow.id);
+    (await import("../../../src/db/database.js")).runMigrations();
+    assert.equal(baseline(), 10);
+    const secondConnection = new Database(db.name);
+    try {
+      assert.equal((secondConnection.prepare("SELECT condition_baseline_value AS value FROM automation_blocks WHERE id = ?").get(condition.id) as { value: number }).value, 10);
+      secondConnection.prepare("UPDATE automation_blocks SET condition_baseline_value = 20 WHERE id = ?").run(condition.id);
+    } finally { secondConnection.close(); }
+    setReading(10.83);
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), 10.83);
+    assert.equal(sendHttpOutputMock.mock.calls.length, 2);
+  });
+
+  it("preserves state on unchanged saves/disable but resets source or threshold edits and starts duplicates fresh", async () => {
+    const { workflow, condition, key, baseline } = changeWorkflow();
+    await service.runAutomationWorkflow(workflow.id);
+    const config = JSON.parse(condition.config_json);
+    workflowRepo.updateAutomationBlock(workflow.id, condition.id, { config: { value: 1, operator: "changed_by_at_least", variableName: "reading", source: "variable" } });
+    workflowRepo.updateAutomationWorkflow(workflow.id, { enabled: false });
+    assert.equal(baseline(), 10);
+    const copy = workflowRepo.duplicateAutomationWorkflow(workflow.id)!;
+    const copiedCondition = workflowRepo.listAutomationBlocks(copy.id).find((block) => block.type === "if_payload_field_equals")!;
+    assert.equal(workflowRepo.getConditionBaseline(copy.id, copiedCondition.id, key), null);
+    workflowRepo.updateAutomationBlock(workflow.id, condition.id, { config: { ...config, value: 2 } });
+    assert.equal(workflowRepo.getConditionBaseline(workflow.id, condition.id, conditionBaselineKey({ ...config, value: 2 })), null);
+  });
+
+  it("does not overwrite an edited condition with a baseline from the old in-flight run", async () => {
+    const { workflow, condition, baseline } = changeWorkflow();
+    sendHttpOutputMock.mockImplementationOnce(async () => {
+      workflowRepo.updateAutomationBlock(workflow.id, condition.id, { config: { source: "variable", variableName: "reading", operator: "changed_by_at_least", value: 2 } });
+      return { status: 200 };
+    });
+    await service.runAutomationWorkflow(workflow.id);
+    assert.equal(baseline(), null);
+    assert.equal((db.prepare("SELECT condition_baseline_value AS value FROM automation_blocks WHERE id = ?").get(condition.id) as { value: number | null }).value, null);
+  });
+
+});
+describe("BH1750 workflow reads", () => {
+  it.each(["manual", "schedule"] as const)("stores lux and the reading reference for a %s run", async (trigger) => {
+    const config = { sensor: "bh1750", bus: 1, address: "0x23" };
+    const source = dataSourcesRepo.createDataSource({ name: "Room light", type: "bh1750-sensor", config });
+    const preview = { ...config, lux: 120, readAt: "2026-11-19T00:00:00Z" };
+    readBh1750SensorSourceMock.mockResolvedValue({ preview, bytesHash: "light-hash", canonicalBytes: JSON.stringify(preview) });
+    const workflow = makeWorkflow([
+      { type: trigger === "manual" ? "manual_start" : "schedule_start", config: { intervalSeconds: 60 } },
+      { type: "fetch_data_source", config: { sourceId: source.id } }
+    ]);
+    await service.executeWorkflow(workflow, { type: trigger });
+    assert.deepEqual(readBh1750SensorSourceMock.mock.calls[0], [config]);
+    assert.equal(dataSourcesRepo.getDataSource(source.id)!.last_hash, "light-hash");
+    assert.deepEqual(JSON.parse(dataSourcesRepo.getDataSource(source.id)!.last_preview!), preview);
+    const stored = db.prepare("SELECT source_url, trigger_type, status FROM data_source_reads WHERE data_source_id = ?").get(source.id);
+    assert.deepEqual(stored, { source_url: "bh1750:i2c-1:0x23", trigger_type: trigger, status: "success" });
+    assert.equal(readJsonApiSourceMock.mock.calls.length, 0);
+  });
+});
 
 describe("automation.service — serializers", () => {
   it("serializes a workflow with its blocks and structured last error", () => {
@@ -264,6 +419,11 @@ describe("automation.service — run lifecycle", () => {
     assert.equal(runs[0].status, "success");
     assert.equal(runs[0].blocks.length, 2);
     assert.ok(runs[0].blocks.every((b) => b.status === "success"));
+    assert.deepEqual(runs[0].blocks[1].config, {
+      variableName: "x",
+      variableSource: "custom_json",
+      valueJsonText: "42",
+    });
   });
 
   it("marks a failed run, persists a structured workflow error, and rethrows with details attached", async () => {
@@ -332,12 +492,46 @@ describe("automation.service — if_payload_field_equals", () => {
     await service.runAutomationWorkflow(wf.id, { type: "manual", payload: { go: true } });
     const runs = service.listSerializedAutomationRunsForWorkflow(wf.id);
     assert.equal(runs[0].blocks.length, 3);
-    const lastOutput = runs[0].blocks[2].output as { variables: Record<string, unknown> };
-    assert.equal(lastOutput.variables.reached, true);
+    assert.deepEqual(runs[0].blocks[2].output, {
+      output: { action: "set_variable", name: "reached", value: true },
+    });
   });
 });
 
 describe("automation.service — set_variable", () => {
+  it("records compact immutable configuration without repeating trigger data in every block", async () => {
+    const secret = ["private", "payload"].join("-");
+    const wf = makeWorkflow([
+      { type: "manual_start", config: {} },
+      { type: "set_variable", config: { variableName: "message", variableSource: "custom_json", valueJsonText: "30" } },
+      { type: "wait", config: { durationMs: 0 } },
+    ]);
+    await service.runAutomationWorkflow(wf.id, {
+      type: "manual",
+      payload: { marker: "unique-trigger-marker", apiKey: secret },
+    });
+    const saved = service.listSerializedAutomationRunsForWorkflow(wf.id)[0];
+    const variable = saved.blocks[1];
+    workflowRepo.updateAutomationBlock(wf.id, variable.blockId!, {
+      config: { variableName: "message", variableSource: "custom_json", valueJsonText: "99" },
+    });
+
+    const reloaded = service.listSerializedAutomationRunsForWorkflow(wf.id)[0];
+    assert.deepEqual(reloaded.blocks[1].config, {
+      variableName: "message",
+      variableSource: "custom_json",
+      valueJsonText: "30",
+    });
+    assert.deepEqual(reloaded.blocks[1].output, {
+      output: { action: "set_variable", name: "message", value: 30 },
+    });
+    assert.equal(reloaded.blocks[1].input, null);
+    assert.equal(reloaded.blocks[2].output, null);
+    assert.equal(JSON.stringify(reloaded.blocks).includes("unique-trigger-marker"), false);
+    assert.equal(JSON.stringify(reloaded).includes(secret), false);
+    assert.deepEqual(reloaded.triggerPayload, { marker: "unique-trigger-marker", apiKey: "[redacted]" });
+  });
+
   it("throws on an invalid variable name", async () => {
     const wf = makeWorkflow([
       { type: "manual_start", config: {} },
@@ -375,11 +569,15 @@ describe("automation.service — set_variable", () => {
     ]);
     await service.runAutomationWorkflow(wf.id, { type: "manual", payload: { foo: "bar" } });
     const runs = service.listSerializedAutomationRunsForWorkflow(wf.id);
-    const lastOutput = runs[0].blocks[runs[0].blocks.length - 1].output as { variables: Record<string, unknown> };
-    assert.equal(lastOutput.variables.a, 1);
-    assert.equal(lastOutput.variables.b, "bar");
-    assert.equal(lastOutput.variables.c, 5);
-    assert.equal(lastOutput.variables.d, "hash1");
+    const assignments = runs[0].blocks
+      .filter((block) => block.blockType === "set_variable")
+      .map((block) => (block.output as { output: { name: string; value: unknown } }).output);
+    assert.deepEqual(Object.fromEntries(assignments.map(({ name, value }) => [name, value])), {
+      a: 1,
+      b: "bar",
+      c: 5,
+      d: "hash1",
+    });
   });
 });
 
@@ -456,7 +654,9 @@ describe("automation.service — record_trigger_event", () => {
 
       const [run] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
       const recordBlock = runsRepo.listAutomationBlockRuns(run.id).find((block) => block.block_type === "record_trigger_event")!;
-      assert.equal((JSON.parse(recordBlock.output_json!) as { data: { sourceUrl: string } }).data.sourceUrl, `data-source:${source.id}`);
+      const recordedData = (JSON.parse(recordBlock.output_json!) as { data: { sourceId: string; sourceUrl?: string } }).data;
+      assert.equal(recordedData.sourceId, source.id);
+      assert.equal(recordedData.sourceUrl, undefined);
       const stored = JSON.stringify([read, run, runsRepo.listAutomationBlockRuns(run.id)]);
       assert.equal(stored.includes(webhookToken) || stored.includes(brokerPassword), false, "a credential was persisted");
     }

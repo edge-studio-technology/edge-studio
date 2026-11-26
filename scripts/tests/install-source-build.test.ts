@@ -16,6 +16,10 @@ const readFunction = (name: string) => {
 };
 
 describe("documented contributor source-build route", () => {
+  it("keeps the updated installer syntactically valid", () => {
+    const result = spawnSync(bash, ["-n"], { input: installer, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  });
   let dir: string;
   beforeEach(() => { dir = mkdtempSync(join(tmpdir(), "edge-source-build-")); });
   afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
@@ -71,5 +75,23 @@ test -e state/last-applied-manifest.json`);
       "compose --profile update-agent rm -sf update-agent",
       "compose pull frontend backend", "network", "compose up -d",
     ]);
+  });
+
+  it("preserves display helper environment and private configuration during source refresh", () => {
+    const lines = run(`${readFunction("clean_app_directory")}
+relative_top_level_dir() { printf '%s' "\${1#./}"; }
+APP_DIR="$PWD/app"
+MINIMA_DATA_DIR=./minima DATA_DIR=./data UPDATE_AGENT_STATE_DIR=./state
+mkdir -p "$APP_DIR/.venv-display-helper/bin" "$APP_DIR/.venv-sensor-helper" "$APP_DIR/data"
+echo retained > "$APP_DIR/.venv-display-helper/bin/python"
+echo DISPLAY_HELPER_TOKEN=retained > "$APP_DIR/.env"
+echo obsolete > "$APP_DIR/old-code.txt"
+clean_app_directory
+test -f "$APP_DIR/.venv-display-helper/bin/python"
+test -f "$APP_DIR/.env"
+test -d "$APP_DIR/data"
+test ! -e "$APP_DIR/old-code.txt"
+echo retained`);
+    assert.deepEqual(lines, ["retained"]);
   });
 });

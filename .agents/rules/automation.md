@@ -5,12 +5,14 @@
 - Data/capture blocks either record an event trigger, fetch an HTTP JSON Source, or capture Raspberry Pi Camera media.
 - The backend scheduler owns HTTP polling execution; webhook/MQTT/GPIO collect rules are triggered by incoming data while enabled.
 - Workflow variables are per-run only. `Set variable` can save custom JSON or field values from trigger/latest data/context for later conditions and output interpolation.
+- Run logs store allowlisted recorded block configuration and block-specific input/result. Use shared redaction before persistence, parsing JSON template strings first. Keep diagnostic copies separate from runtime context and external payloads; historical inspectors use the recorded config. Legacy runs retain a null configuration snapshot. See `docs/guides/contributing-workflows.md#run-diagnostics`.
 - `Show preview` writes durable local Automation inbox items for operator-facing text, JSON, links, and image references.
 - Store `last_run_at`, `next_run_at`, `last_hash`, `last_proof_id`, and `last_error`.
 - Save `last_hash` after successful data fetch or push ingestion even if Integritas stamping fails.
 - Raspberry Pi Camera capture blocks hash the captured media file bytes, not only the JSON metadata preview.
 - Surface detailed upstream errors where possible without leaking secrets.
 - Runs reaching `send_transaction`, `control_output`, `capture_camera`, or `stamp_integritas` reserve one slot of the persisted per-workflow budget (`automation.policy.ts`, 1,000 runs per rolling hour) before the side effect, for every trigger type; add new side-effecting block types to that set. Event-started workflows with a payment block need a cooldown of at least 1 second, enforced in both validation and `executeWorkflow()`. Run/block history and unlinked reads follow opt-in retention settings (off by default); active runs, proof-linked reads, and Integritas history are protected. Inbox items keep their manual-deletion default unless an independent age policy is enabled; protect active-run inbox items and never delete linked files. Manual deletions and age expiry share a 500-inbox-item batch limit. Retention must preserve the security budget ledger and delete block rows atomically with parent runs. See `docs/adr/0022-bound-external-automation-effects.md`.
+- Standalone `changed_by_at_least` conditions require finite numeric input and a positive finite threshold; compare absolute change to the persisted per-condition baseline. Commit baselines only on successful, non-stopped workflow completion, independent of run history. Condition source/operator/threshold edits reset state; unrelated saves preserve it. Attached stamp conditions do not support this operator.
 
 ## Frontend naming
 

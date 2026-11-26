@@ -159,6 +159,7 @@ describe("workflowHelpers", () => {
 
   it("conditionOperatorOptions covers all condition operators", () => {
     expect(conditionOperatorOptions.map((option) => option.value)).toEqual([
+      "changed_by_at_least",
       "equals",
       "not_equals",
       "greater_than",
@@ -903,6 +904,7 @@ describe("workflowHelpers", () => {
       expect(
         sourceLabel(source({ type: "bme-sensor", config: { sensor: "bme680", bus: 1, address: "0x77" } })),
       ).toBe("bme680 i2c-1 0x77");
+      expect(sourceLabel(source({ type: "bh1750-sensor", config: { sensor: "bh1750", bus: 1, address: "0x23" } }))).toBe("bh1750 i2c-1 0x23");
       expect(sourceLabel(source({ type: "device-system-data" }))).toBe("device-system-data:local");
       expect(sourceLabel(source({ type: "json-api", config: { url: "https://api" } }))).toBe(
         "https://api",
@@ -911,9 +913,17 @@ describe("workflowHelpers", () => {
   });
 
   describe("isReadableSource / isOutputTarget", () => {
+    it("keeps SPI displays output-only with a text action and suitable retarget defaults", () => {
+      const display = source({ id: "lcd", type: "spi-display", config: { model: "pim576" } });
+      expect(isReadableSource(display)).toBe(false);
+      expect(isOutputTarget(display)).toBe(true);
+      expect(defaultOutputBlockConfig(display, 500)).toMatchObject({ targetId: "lcd", action: "display_text", bodyMode: "custom" });
+      expect(retargetOutputBlockConfig({ action: "pulse", durationMs: 500 }, display)).toEqual(defaultOutputBlockConfig(display, 0));
+    });
     it("classifies readable source types", () => {
       expect(isReadableSource(source({ type: "json-api" }))).toBe(true);
       expect(isReadableSource(source({ type: "bme-sensor" }))).toBe(true);
+      expect(isReadableSource(source({ type: "bh1750-sensor" }))).toBe(true);
       expect(isReadableSource(source({ type: "device-system-data" }))).toBe(true);
       expect(isReadableSource(source({ type: "gpio-output" }))).toBe(false);
     });

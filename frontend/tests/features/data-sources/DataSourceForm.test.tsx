@@ -6,6 +6,8 @@ import type { DeviceFormFields } from "../../../src/features/data-sources/useDev
 
 function fields(overrides: Partial<DeviceFormFields> = {}): DeviceFormFields {
   return {
+    displayRotation: 0,
+    setDisplayRotation: vi.fn(),
     name: "My device",
     setName: vi.fn(),
     description: "",
@@ -183,6 +185,18 @@ describe("DataSourceForm", () => {
     render(<DataSourceForm template={null} {...fields({ type: "bme-sensor" })} />);
     expect(screen.getByLabelText("I2C bus")).toBeInTheDocument();
     expect(screen.getByLabelText("I2C address")).toBeInTheDocument();
+  });
+
+  it("edits a saved BH1750 with only BH1750 addresses and validates the bus", async () => {
+    const formFields = fields({ type: "bh1750-sensor", bmeBus: "1", bmeAddress: "0x5c" });
+    render(<DataSourceForm template={null} {...formFields} />);
+    expect(screen.getByLabelText("I2C address")).toHaveValue("0x5c");
+    expect(screen.queryByRole("option", { name: "0x76" })).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("I2C address"), "0x23");
+    expect(formFields.setBmeAddress).toHaveBeenCalledWith("0x23");
+    expect(isDataSourceFormValid(formFields)).toBe(true);
+    expect(isDataSourceFormValid({ ...formFields, bmeBus: "1.5" })).toBe(false);
+    expect(isDataSourceFormValid({ ...formFields, bmeAddress: "0x76" })).toBe(false);
   });
 
   it("shows the device-system-data description with no configurable fields", () => {

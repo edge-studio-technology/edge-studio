@@ -3,7 +3,7 @@ import { env } from "../../config/env.js";
 type HostCapabilityState = "disabled" | "applying" | "enabled" | "failed" | "needs_reboot" | "missing_prerequisites";
 
 export type HostCapability = {
-  name: "camera" | "gpio" | "sensors" | "mqtt";
+  name: "camera" | "gpio" | "sensors" | "mqtt" | "displays";
   enabled: boolean;
   installed: boolean;
   available: boolean;
@@ -33,6 +33,18 @@ export async function listHostCapabilities() {
 export async function enableHostCameraCapability() {
   debugHostCapability("post", "/capabilities/camera/apply");
   return hostAgentActionRequest("/capabilities/camera/apply");
+}
+
+export async function enableHostDisplayCapability() {
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/displays/apply", { method: "POST" }, HOST_AGENT_SETUP_TIMEOUT_MS);
+}
+
+export async function disableHostDisplayCapability() {
+  return hostAgentActionRequest("/capabilities/displays/disable");
+}
+
+export async function setupHostDisplayPrerequisites() {
+  return hostAgentRequest<HostSensorPrerequisiteSetupResponse>("/capabilities/displays/setup-prerequisites", { method: "POST" }, HOST_AGENT_SETUP_TIMEOUT_MS);
 }
 
 export async function disableHostCameraCapability() {
@@ -104,7 +116,7 @@ async function hostAgentRequest<T>(pathname: string, init: RequestInit = {}, tim
 }
 
 function fallbackCapabilities(reason: string): HostAgentListResponse {
-  return { items: [fallbackCameraCapability(reason), fallbackCapability("gpio", reason), fallbackCapability("sensors", reason), fallbackCapability("mqtt", reason)] };
+  return { items: [fallbackCameraCapability(reason), fallbackCapability("gpio", reason), fallbackCapability("sensors", reason), fallbackCapability("mqtt", reason), fallbackCapability("displays", reason)] };
 }
 
 function debugHostCapability(event: string, pathname: string, details?: unknown) {

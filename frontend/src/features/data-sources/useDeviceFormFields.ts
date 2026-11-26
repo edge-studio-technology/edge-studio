@@ -8,6 +8,7 @@ import type { DataSource, DataSourceTemplate } from "./dataSourceTypes";
  */
 export function useDeviceFormFields() {
   const [name, setName] = useState("");
+  const [displayRotation, setDisplayRotation] = useState<0 | 90 | 180 | 270>(0);
   const [description, setDescription] = useState("");
   const [type, setType] = useState<DataSource["type"]>("json-api");
   const [url, setUrl] = useState("");
@@ -27,7 +28,7 @@ export function useDeviceFormFields() {
   const [cameraFps, setCameraFps] = useState("30");
   const [bmeSensor, setBmeSensor] = useState<"bme280" | "bme680">("bme280");
   const [bmeBus, setBmeBus] = useState("1");
-  const [bmeAddress, setBmeAddress] = useState<"0x76" | "0x77">("0x76");
+  const [bmeAddress, setBmeAddress] = useState<NonNullable<DataSource["config"]["address"]>>("0x76");
   const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "PATCH">("GET");
 
   function fillFields(
@@ -37,6 +38,7 @@ export function useDeviceFormFields() {
     config: DataSource["config"],
   ) {
     setName(nextName);
+    setDisplayRotation(config.rotation ?? 0);
     setDescription(nextDescription);
     setType(nextType);
     setUrl(config.url ?? "");
@@ -54,9 +56,9 @@ export function useDeviceFormFields() {
     setCameraHeight(String(config.height ?? 720));
     setCameraDurationMs(String(config.durationMs ?? 1000));
     setCameraFps(String(config.fps ?? 30));
-    setBmeSensor(config.sensor ?? "bme280");
+    setBmeSensor(config.sensor === "bme680" ? "bme680" : "bme280");
     setBmeBus(String(config.bus ?? 1));
-    setBmeAddress(config.address ?? "0x76");
+    setBmeAddress(config.address ?? (nextType === "bh1750-sensor" ? "0x23" : "0x76"));
     setMethod(config.method ?? "GET");
   }
 
@@ -69,6 +71,7 @@ export function useDeviceFormFields() {
   }
 
   function reset() {
+    setDisplayRotation(0);
     setName("");
     setDescription("");
     setType("json-api");
@@ -95,6 +98,8 @@ export function useDeviceFormFields() {
 
   return {
     fields: {
+      displayRotation,
+      setDisplayRotation,
       name,
       setName,
       description,

@@ -39,9 +39,52 @@ class HostAgentWriteTests(unittest.TestCase):
         self.agent.COMPOSE_OVERRIDE_FILE = self.root / "docker-compose.override.yml"
         self.agent.CAMERA_SERVICE_FILE = self.root / "edge-studio-camera-helper.service"
         self.agent.SENSOR_SERVICE_FILE = self.root / "edge-studio-sensor-helper.service"
+        self.agent.DISPLAY_SERVICE_FILE = self.root / "edge-studio-display-helper.service"
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_display_setup_and_repair_retain_token_environment_and_fixed_commands(self):
+        self.agent.ENV_FILE.write_text("DISPLAY_HELPER_TOKEN=existing-display-token\nENABLE_DISPLAYS=false\nKEEP_ME=true\n", encoding="utf-8")
+        code = self.root / "display-helper" / "edge_studio_display_helper.py"
+        code.parent.mkdir()
+        code.write_text("# helper", encoding="utf-8")
+        lock = code.parent / "requirements.lock"
+        lock.write_text("st7789==1.0.1 --hash=sha256:test\n", encoding="utf-8")
+        python = self.root / ".venv-display-helper" / "bin" / "python"
+        python.parent.mkdir(parents=True)
+        python.write_text("# retained", encoding="utf-8")
+        original_exists = self.agent.Path.exists
+        def exists(path):
+            return True if str(path).replace("\\", "/") in ("/dev/spidev0.0", "/dev/gpiochip0") else original_exists(path)
+        with patch.object(self.agent.Path, "exists", exists), patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")) as run, patch.object(self.agent, "helper_user", return_value="pi"), patch.object(self.agent, "restart_backend", return_value={"ok": True}), patch.object(self.agent, "display_status", return_value={"name": "displays", "enabled": True}):
+            self.agent.apply_displays()
+            self.agent.apply_displays()
+        self.assertEqual(python.read_text(encoding="utf-8"), "# retained")
+        self.assertIn("DISPLAY_HELPER_TOKEN=existing-display-token", self.agent.ENV_FILE.read_text())
+        self.assertIn("KEEP_ME=true", self.agent.ENV_FILE.read_text())
+        self.assertFalse(any("venv" in call.args[0] for call in run.call_args_list))
+        install_calls = [call.args[0] for call in run.call_args_list if "pip" in call.args[0]]
+        self.assertEqual(len(install_calls), 2)
+        self.assertTrue(all("--require-hashes" in call and str(lock) in call for call in install_calls))
+        service = self.agent.DISPLAY_SERVICE_FILE.read_text()
+        self.assertIn("Environment=DISPLAY_HELPER_HOST=172.30.0.1", service)
+        self.assertIn("Environment=EDGE_STUDIO_DOCKER_SUBNET=172.30.0.0/24", service)
+        self.assertIn("iptables -C INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $DISPLAY_HELPER_PORT -j ACCEPT", service)
+
+    def test_display_setup_fails_without_spi_before_writing_configuration(self):
+        with patch.object(self.agent.Path, "exists", return_value=False), patch.object(self.agent, "write_env") as write:
+            with self.assertRaisesRegex(ValueError, "Enable host SPI"):
+                self.agent.apply_displays()
+        write.assert_not_called()
+
+    def test_display_disable_is_repeatable_and_preserves_token(self):
+        self.agent.ENV_FILE.write_text("ENABLE_DISPLAYS=true\nDISPLAY_HELPER_TOKEN=retained\n", encoding="utf-8")
+        with patch.object(self.agent.shutil, "which", return_value="systemctl"), patch.object(self.agent, "run"), patch.object(self.agent, "restart_backend", return_value={"ok": True}), patch.object(self.agent, "display_status", return_value={"enabled": False}):
+            self.agent.disable_displays()
+            self.agent.disable_displays()
+        self.assertIn("ENABLE_DISPLAYS=false", self.agent.ENV_FILE.read_text())
+        self.assertIn("DISPLAY_HELPER_TOKEN=retained", self.agent.ENV_FILE.read_text())
 
     def test_atomic_write_keeps_existing_file_when_replace_fails(self):
         target = self.root / "target.txt"
@@ -330,11 +373,16 @@ class HostAgentWriteTests(unittest.TestCase):
 
         with patch.object(self.agent, "missing_sensor_prerequisites_message", return_value=None):
             with patch.object(self.agent, "helper_user", return_value="root"):
-                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")):
+                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")) as run:
                     with patch.object(self.agent, "restart_backend", return_value={"ok": True, "scheduled": True}):
                         with patch.object(self.agent, "sensor_status", return_value={"state": "enabled"}):
                             self.agent.apply_sensors()
                             self.agent.apply_sensors()
+
+        installs = [call.args[0] for call in run.call_args_list if "pip" in call.args[0]]
+        self.assertEqual(installs, [[str(sensor_python), "-m", "pip", "install", "bme680", "smbus2"]] * 2)
+        self.assertFalse(any("venv" in call.args[0] for call in run.call_args_list))
+        self.assertTrue(sensor_python.exists())
 
         env_content = self.agent.ENV_FILE.read_text(encoding="utf-8")
         service_content = self.agent.SENSOR_SERVICE_FILE.read_text(encoding="utf-8")
@@ -386,6 +434,41 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertFalse(status["enabled"])
         self.assertFalse(status["available"])
         self.assertIn("/dev/i2c-1 was not found", status["reason"])
+
+    def test_spi_setup_runs_only_fixed_steps_and_reports_reboot_without_enabling_or_rebooting(self):
+        for device_exists in (True, False):
+            with self.subTest(device_exists=device_exists), patch.object(self.agent.shutil, "which", return_value="/usr/bin/tool"), patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")) as run, patch.object(self.agent.Path, "exists", return_value=device_exists), patch.object(self.agent, "display_status", return_value={"name": "displays", "enabled": False}), patch.object(self.agent, "write_env") as write:
+                result = self.agent.setup_display_prerequisites()
+            self.assertEqual([call.args[0] for call in run.call_args_list], [
+                ["apt-get", "update"],
+                ["apt-get", "install", "-y", "python3-venv", "python3-dev", "build-essential"],
+                ["raspi-config", "nonint", "do_spi", "0"],
+            ])
+            self.assertEqual(result["rebootRequired"], not device_exists)
+            self.assertFalse(result["capability"]["enabled"])
+            write.assert_not_called()
+
+    def test_spi_setup_rejects_unsupported_hosts_before_mutating_them(self):
+        for missing in ("apt-get", "raspi-config"):
+            with self.subTest(missing=missing), patch.object(self.agent.shutil, "which", side_effect=lambda name: None if name == missing else "/usr/bin/tool"), patch.object(self.agent, "run") as run:
+                with self.assertRaisesRegex(ValueError, "Use the manual setup"):
+                    self.agent.setup_display_prerequisites()
+                run.assert_not_called()
+
+    def test_display_status_exposes_missing_python_prerequisites_to_the_setup_ui(self):
+        def exists(path):
+            return path.as_posix() in ("/dev/spidev0.0", "/dev/gpiochip0")
+        with patch.object(self.agent.Path, "exists", exists), patch.object(self.agent.shutil, "which", return_value=None), patch.object(self.agent, "service_checks", return_value={"serviceFileExists": False, "serviceActive": False, "serviceEnabled": False}):
+            status = self.agent.display_status()
+        self.assertEqual(status["state"], "missing_prerequisites")
+        self.assertIn("Python virtualenv", status["reason"])
+        self.assertFalse(status["checks"]["pythonVenvAvailable"])
+
+    def test_spi_setup_stops_on_a_failed_step_with_no_success_report(self):
+        with patch.object(self.agent.shutil, "which", return_value="/usr/bin/tool"), patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 1, "", "private package output")) as run:
+            with self.assertRaisesRegex(ValueError, "failed during: Update package lists"):
+                self.agent.setup_display_prerequisites()
+            self.assertEqual(run.call_count, 1)
 
     def test_setup_sensor_prerequisites_runs_fixed_i2c_steps(self):
         original_exists = self.agent.Path.exists

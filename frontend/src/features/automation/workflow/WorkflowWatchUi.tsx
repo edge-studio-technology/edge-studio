@@ -707,7 +707,7 @@ function DomainBlockInputSummary({
           { label: "Input", value: "Received trigger" },
           { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : blockRun.blockType },
           { label: "Source", value: typeof trigger?.sourceId === "string" ? trigger.sourceId : "No source" },
-          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
+          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "Stored with the workflow run" },
         ]}
       />
     );
@@ -718,8 +718,8 @@ function DomainBlockInputSummary({
       <SummaryRows
         rows={[
           { label: "Input", value: "Trigger payload" },
-          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : "trigger" },
-          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
+          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : blockRun.blockType },
+          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "Stored with the workflow run" },
         ]}
       />
     );
@@ -731,7 +731,7 @@ function DomainBlockInputSummary({
         rows={[
           { label: "Input", value: block.type === "capture_camera" ? "Camera source" : "Data source" },
           { label: "Source ID", value: block.config.sourceId ?? "Not selected" },
-          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : "trigger" },
+          ...(typeof trigger?.type === "string" ? [{ label: "Trigger", value: trigger.type }] : []),
         ]}
       />
     );
@@ -752,7 +752,9 @@ function DomainBlockInputSummary({
   if (block.type === "if_payload_field_equals") {
     const source = block.config.source === "variable" ? "variable" : "trigger";
     const path = source === "variable" ? block.config.variableName : block.config.fieldPath;
-    const actual = inputContextValue(inputContext, source, path);
+    const actual = inputContext && Object.prototype.hasOwnProperty.call(inputContext, "actual")
+      ? inputContext.actual
+      : inputContextValue(inputContext, source, path);
     return (
       <SummaryRows
         rows={[
@@ -775,7 +777,9 @@ function DomainBlockInputSummary({
         rows={[
           { label: "Content", value: previewContentLabel(block.config.contentMode) },
           { label: "Title", value: block.config.title ?? "Workflow preview" },
-          { label: "Latest data", value: typeof data?.sourceName === "string" ? data.sourceName : "No data selected" },
+          ...(block.config.contentMode === "latest_data"
+            ? [{ label: "Latest data", value: typeof data?.sourceName === "string" ? data.sourceName : "Not recorded" }]
+            : []),
         ]}
       />
     );
@@ -821,7 +825,7 @@ function DomainBlockInputSummary({
 }
 
 function hasDomainBlockInput(block: AutomationBlock, blockRun: AutomationRun["blocks"][number]) {
-  return Boolean(contextRecord(blockRun.input) && DomainInputBlockTypes.has(block.type));
+  return Boolean(DomainInputBlockTypes.has(block.type) && (blockRun.config != null || contextRecord(blockRun.input)));
 }
 
 const DomainInputBlockTypes = new Set<string>([
@@ -921,12 +925,13 @@ function DomainBlockResultSummary({
 
   if (block.type === "stamp_integritas" && outputContext) {
     const action = typeof blockOutput?.action === "string" ? blockOutput.action : blockRun.status;
+    const inputHash = contextRecord(blockRun.input)?.hash;
     return (
       <SummaryRows
         rows={[
           { label: "Action", value: action },
-          { label: "Hash", value: typeof outputContext.hash === "string" ? outputContext.hash : "No hash" },
-          { label: "Proof", value: typeof outputContext.proofId === "string" ? outputContext.proofId : "No proof" },
+          { label: "Hash", value: typeof inputHash === "string" ? inputHash : typeof outputContext.hash === "string" ? outputContext.hash : "No hash" },
+          { label: "Proof", value: typeof blockOutput?.proofId === "string" ? blockOutput.proofId : typeof outputContext.proofId === "string" ? outputContext.proofId : "No proof" },
           { label: "Proof UID", value: typeof blockOutput?.proofUid === "string" ? blockOutput.proofUid : "No proof UID" },
         ]}
       />
@@ -1009,7 +1014,7 @@ function hasDomainBlockResult(block: AutomationBlock, blockRun: AutomationRun["b
 
 /** Watch-mode selected-block sheet: run/block status and output. */
 export function WatchRuntimeInspector({
-  selectedBlock,
+  selectedBlock: currentBlock,
   latestBlockRun,
   selectedRun,
   onCloseSelectedBlock,
@@ -1019,9 +1024,19 @@ export function WatchRuntimeInspector({
   selectedRun: AutomationRun | undefined;
   onCloseSelectedBlock?: () => void;
 }) {
+  const selectedBlock = currentBlock && latestBlockRun?.config
+    ? {
+        ...currentBlock,
+        type: latestBlockRun.blockType as AutomationBlock["type"],
+        config: latestBlockRun.config,
+      }
+    : currentBlock;
   const readId = readIdFromOutput(latestBlockRun?.output);
-  const proofId =
-    selectedBlock?.type === "fetch_data_source" ? proofIdFromOutput(latestBlockRun?.output) : null;
+  const proofId = selectedBlock?.type === "stamp_integritas"
+    ? proofIdFromOutput(contextRecord(latestBlockRun?.output)?.output)
+    : selectedBlock?.type === "fetch_data_source"
+      ? proofIdFromOutput(latestBlockRun?.output)
+      : null;
   const showReadDiagnostics = Boolean(readId && blockCreatesDataRead(selectedBlock));
   const [readDetails, setReadDetails] = useState<DataSourceRead | null>(null);
   const [readDetailsLoading, setReadDetailsLoading] = useState(false);
@@ -1076,6 +1091,20 @@ export function WatchRuntimeInspector({
         )}
         {selectedRun?.error && <p className={errorText}>{selectedRun.error}</p>}
       </InspectorSection>
+      {latestBlockRun ? (
+        <InspectorSection title="Configuration" description="Settings recorded when this block executed.">
+          {latestBlockRun.config == null ? (
+            <p className={mutedText}>Unavailable for this historical run.</p>
+          ) : (
+            <JsonPreview
+              value={latestBlockRun.config}
+              label="View recorded configuration"
+              variant="button"
+              className="w-full"
+            />
+          )}
+        </InspectorSection>
+      ) : null}
       <InspectorSection
         title="Block status"
         description="Latest stored status for the selected block in this run."
@@ -1116,7 +1145,7 @@ export function WatchRuntimeInspector({
             <DomainBlockInputSummary block={selectedBlock} blockRun={latestBlockRun} />
             <JsonPreview
               value={latestBlockRun.input}
-              label="View pre-block context"
+              label="View recorded input"
               variant="button"
               className="w-full"
             />
@@ -1126,7 +1155,7 @@ export function WatchRuntimeInspector({
             <RunValueSummary value={latestBlockRun?.input} />
             <JsonPreview
               value={latestBlockRun?.input}
-              label="View pre-block context"
+              label="View recorded input"
               variant="button"
               className="w-full"
             />
@@ -1148,7 +1177,7 @@ export function WatchRuntimeInspector({
             <DomainBlockResultSummary block={selectedBlock} blockRun={latestBlockRun} />
             <JsonPreview
               value={latestBlockRun.output}
-              label="View post-block context"
+              label="View recorded result"
               variant="button"
               className="w-full"
             />
@@ -1158,7 +1187,7 @@ export function WatchRuntimeInspector({
             <RunValueSummary value={latestBlockRun?.output} />
             <JsonPreview
               value={latestBlockRun?.output}
-              label="View post-block context"
+              label="View recorded result"
               variant="button"
               className="w-full"
             />

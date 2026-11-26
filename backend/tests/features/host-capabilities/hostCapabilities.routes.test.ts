@@ -10,6 +10,7 @@ const { enableHostSensorCapabilityMock, disableHostMqttCapabilityMock, setupHost
 }));
 
 vi.mock("../../../src/features/host-capabilities/hostCapabilities.service.js", () => ({
+  setupHostDisplayPrerequisites: vi.fn(),
   listHostCapabilities: vi.fn(),
   enableHostCameraCapability: vi.fn(),
   disableHostCameraCapability: vi.fn(),
@@ -37,7 +38,7 @@ vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
 
 const { hostCapabilitiesRouter } = await import("../../../src/features/host-capabilities/hostCapabilities.routes.js");
 const { pauseCameraRetention } = await import("../../../src/features/retention/camera-retention.service.js");
-const { disableHostCameraCapability } = await import("../../../src/features/host-capabilities/hostCapabilities.service.js");
+const { disableHostCameraCapability, setupHostDisplayPrerequisites } = await import("../../../src/features/host-capabilities/hostCapabilities.service.js");
 
 function testApp() {
   const app = express();
@@ -51,12 +52,27 @@ function testApp() {
 
 describe("hostCapabilities.routes", () => {
   beforeEach(() => {
+    vi.mocked(setupHostDisplayPrerequisites).mockReset();
     vi.mocked(pauseCameraRetention).mockClear();
     vi.mocked(disableHostCameraCapability).mockReset();
     enableHostSensorCapabilityMock.mockReset();
     disableHostMqttCapabilityMock.mockReset();
     setupHostSensorPrerequisitesMock.mockReset();
     recordAuditEventMock.mockReset();
+  });
+
+  it("audits explicit SPI setup and returns its reboot requirement without enabling the display", async () => {
+    vi.mocked(setupHostDisplayPrerequisites).mockResolvedValue({ capability: { name: "displays", enabled: false, installed: false, available: false, state: "missing_prerequisites", reason: "Reboot required" }, steps: [{ label: "Enable SPI interface", ok: true }], rebootRequired: true });
+    const response = await request(testApp()).post("/api/host-capabilities/displays/setup-prerequisites").expect(200);
+    expect(response.body.rebootRequired).toBe(true);
+    expect(response.body.capability.enabled).toBe(false);
+    expect(recordAuditEventMock).toHaveBeenCalledWith("host-capability.setup-prerequisites", { userId: "user-1", detail: "capability=displays state=missing_prerequisites rebootRequired=true" });
+  });
+
+  it("reports SPI setup failure without writing a success audit", async () => {
+    vi.mocked(setupHostDisplayPrerequisites).mockRejectedValue(new Error("Automatic SPI setup requires raspi-config"));
+    await request(testApp()).post("/api/host-capabilities/displays/setup-prerequisites").expect(502);
+    expect(recordAuditEventMock).not.toHaveBeenCalled();
   });
 
   it("pauses camera retention before a disable request even if the host action fails", async () => {

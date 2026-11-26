@@ -202,6 +202,21 @@ describe("DraftBlockInspector set_variable", () => {
 });
 
 describe("DraftBlockInspector if_payload_field_equals", () => {
+  it("defaults a change threshold to one and edits a persisted numeric threshold", async () => {
+    const onChange = vi.fn();
+    const config = { source: "variable" as const, variableName: "lux", operator: "equals" as const, value: true };
+    const view = renderInspector(draftBlock("if_payload_field_equals", config), { onChange });
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Operator" }), "changed_by_at_least");
+    expect(onChange).toHaveBeenCalledWith({ ...config, operator: "changed_by_at_least", value: 1 });
+    view.unmount();
+    renderInspector(draftBlock("if_payload_field_equals", { ...config, operator: "changed_by_at_least", value: 1 }), { onChange });
+    expect(screen.getByText(/baseline survives restarts/)).toBeInTheDocument();
+    const threshold = screen.getByRole("textbox", { name: "Minimum change" });
+    expect(threshold).toHaveValue("1");
+    fireEvent.change(threshold, { target: { value: "0.5" } });
+    expect(onChange).toHaveBeenLastCalledWith({ ...config, operator: "changed_by_at_least", value: 0.5 });
+  });
+
   it("defaults to a trigger field-path input and hides compare value for 'exists'", async () => {
     const onChange = vi.fn();
     renderInspector(
@@ -478,6 +493,7 @@ describe("AttachedStampSettings", () => {
 
     expect(screen.getByRole("textbox", { name: "Field path" })).toHaveValue("active");
     expect(screen.getByRole("combobox", { name: "Operator" })).toHaveValue("equals");
+    expect(screen.queryByRole("option", { name: /changed by at least/i })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Compare value" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Remove stamp" }));

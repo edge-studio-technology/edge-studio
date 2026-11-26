@@ -56,6 +56,15 @@ describe("installer port configuration", () => {
     assert.match(result.stderr, /CAMERA_HELPER_PORT and FRONTEND_PORT both use port 8080/);
   });
 
+  it("validates the optional display-helper port and prevents sharing an existing service port", () => {
+    const invalid = bash("DISPLAY_HELPER_PORT=65536; configure_ports");
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /Invalid DISPLAY_HELPER_PORT/);
+    const duplicate = bash("DISPLAY_HELPER_PORT=38182; configure_ports");
+    assert.notEqual(duplicate.status, 0);
+    assert.match(duplicate.stderr, /DISPLAY_HELPER_PORT and HOST_AGENT_PORT/);
+  });
+
   it("explains the headless alternative when the terminal cannot be opened", () => {
     const result = bash(`
 ${readFunction("configure_ports").replace("/dev/tty", "/nonexistent-edge-studio-terminal/tty")}

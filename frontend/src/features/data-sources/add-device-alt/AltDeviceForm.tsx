@@ -39,11 +39,13 @@ export function altDeviceProvisioningSteps(fields: DeviceFormFields): Provisioni
 export function isAltDeviceFormValid(fields: DeviceFormFields) {
   const { type, name, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (!name) return false;
+  if (type === "spi-display") return [0, 90, 180, 270].includes(fields.displayRotation);
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
   if (type === "pi-camera")
     return Object.values(cameraFieldErrors(fields)).every((error) => !error);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
+  if (type === "bh1750-sensor") return /^\d+$/.test(fields.bmeBus) && Number(fields.bmeBus) <= 10 && (fields.bmeAddress === "0x23" || fields.bmeAddress === "0x5c");
   if (type === "device-system-data") return true;
   if (type === "webhook") return true;
   return Boolean(url);
@@ -59,17 +61,20 @@ export function AltDeviceForm({
   fields,
   currentStep,
   action,
+  notice,
 }: {
   template: DataSourceTemplate;
   fields: DeviceFormFields;
   currentStep: AltDeviceProvisioningStep;
   action?: ReactNode;
+  notice?: ReactNode;
 }) {
   return (
     <section className="grid min-h-full min-w-0 grid-cols-[260px_minmax(0,1fr)] overflow-hidden">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
       <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-l px-detail-next py-pad-relaxed pl-6">
         <div className="min-w-0">
+          {notice}
           {currentStep === "type" && <DeviceTypeStep template={template} />}
         {currentStep === "name" && <NameStep fields={fields} />}
         {currentStep === "setup" && <SetupFields fields={fields} />}
@@ -129,11 +134,13 @@ export function DeviceAddedSummary({
 }
 
 function isAltDeviceSetupValid(fields: DeviceFormFields) {
+  if (fields.type === "spi-display") return [0, 90, 180, 270].includes(fields.displayRotation);
   const { type, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
   if (type === "pi-camera") return Object.values(cameraFieldErrors(fields)).every((error) => !error);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
+  if (type === "bh1750-sensor") return /^\d+$/.test(fields.bmeBus) && Number(fields.bmeBus) <= 10 && (fields.bmeAddress === "0x23" || fields.bmeAddress === "0x5c");
   if (type === "device-system-data") return true;
   if (type === "webhook") return true;
   return Boolean(url);
@@ -464,9 +471,13 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
         </>
       )}
 
-      {type === "bme-sensor" && (
+      {type === "spi-display" && <>
+        <SelectField label="Rotation" value={String(fields.displayRotation)} onChange={(event) => fields.setDisplayRotation(Number(event.target.value) as 0 | 90 | 180 | 270)} options={[0, 90, 180, 270].map((rotation) => ({ value: String(rotation), label: `${rotation}°` }))} />
+        <p className="type-body text-text-secondary">PIM576 uses SPI0 CE0, DC GPIO25 and backlight GPIO24. Follow the saved device guide for wiring. No output is sent until you deliberately test or run a workflow.</p>
+      </>}
+      {(type === "bme-sensor" || type === "bh1750-sensor") && (
         <>
-          <SelectField
+          {type === "bme-sensor" && <SelectField
             label="Sensor model"
             value={fields.bmeSensor}
             onChange={(event) => fields.setBmeSensor(event.target.value as "bme280" | "bme680")}
@@ -474,9 +485,11 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
               { value: "bme280", label: "BME280" },
               { value: "bme680", label: "BME680" },
             ]}
-          />
+          />}
           <InputField
             label="I2C bus"
+            description={type === "bh1750-sensor" ? "Use 1 for the Pi header. Enter a whole bus number from 0 to 10." : undefined}
+            error={type === "bh1750-sensor" && (!/^\d+$/.test(fields.bmeBus) || Number(fields.bmeBus) > 10) ? "Enter an I2C bus number from 0 to 10." : undefined}
             value={fields.bmeBus}
             onChange={(event) => fields.setBmeBus(event.target.value)}
             placeholder="1"
@@ -485,8 +498,11 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
           <SelectField
             label="I2C address"
             value={fields.bmeAddress}
-            onChange={(event) => fields.setBmeAddress(event.target.value as "0x76" | "0x77")}
-            options={[
+            onChange={(event) => fields.setBmeAddress(event.target.value as NonNullable<DataSource["config"]["address"]>)}
+            options={type === "bh1750-sensor" ? [
+              { value: "0x23", label: "0x23 (default)" },
+              { value: "0x5c", label: "0x5c (ADDR high)" },
+            ] : [
               { value: "0x76", label: "0x76" },
               { value: "0x77", label: "0x77" },
             ]}
@@ -560,6 +576,10 @@ function ReviewStep({ template, fields }: { template: DataSourceTemplate; fields
       <DetailList>
         <DetailRow label="Type" value={template.title} />
         <DetailRow label="Name" value={fields.name || "Not set"} />
+        {fields.type === "spi-display" && <>
+          <DetailRow label="Connection" value="SPI0 CE0 · DC GPIO25 · BL GPIO24" />
+          <DetailRow label="Rotation" value={`${fields.displayRotation}°`} />
+        </>}
         {fields.description && <DetailRow label="Description" value={fields.description} />}
         {fields.type === "json-api" && <DetailRow label="URL" value={fields.url} />}
         {fields.type === "http-output" && <DetailRow label="URL" value={fields.url} />}
@@ -574,6 +594,11 @@ function ReviewStep({ template, fields }: { template: DataSourceTemplate; fields
         {fields.type === "bme-sensor" && <DetailRow label="Sensor model" value={fields.bmeSensor.toUpperCase()} />}
         {fields.type === "bme-sensor" && <DetailRow label="I2C bus" value={fields.bmeBus} />}
         {fields.type === "bme-sensor" && <DetailRow label="I2C address" value={fields.bmeAddress} />}
+        {fields.type === "bh1750-sensor" && <>
+          <DetailRow label="Sensor model" value="BH1750 (lux)" />
+          <DetailRow label="I2C bus" value={fields.bmeBus} />
+          <DetailRow label="I2C address" value={fields.bmeAddress} />
+        </>}
         {fields.type === "webhook" && <DetailRow label="Receive URL" value="Generated after saving" />}
         {fields.type === "pi-camera" && <>
           <DetailRow label="Capture mode" value={fields.cameraMode === "video" ? "Video" : "Photo"} />
