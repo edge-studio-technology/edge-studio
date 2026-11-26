@@ -4,6 +4,23 @@ All notable changes to `edge-studio` are documented in this file.
 
 New releases are prepared by release-please from Conventional commit subjects; see [the release guide](docs/guides/releases.md). Earlier entries retain their original Keep a Changelog format.
 
+## [0.46.0](https://github.com/edge-studio-technology/edge-studio/compare/v0.45.1...v0.46.0) (2026-11-26)
+
+
+### Features
+
+* **devices:** support Adafruit BH1750 light sensors ([00beb47](https://github.com/edge-studio-technology/edge-studio/commit/00beb47900baba69a464112cc36143f910980faf))
+* **devices:** support PIM576 SPI LCD text output ([#198](https://github.com/edge-studio-technology/edge-studio/issues/198)) ([f0f3b7e](https://github.com/edge-studio-technology/edge-studio/commit/f0f3b7e181aa5ee2678794e4f70c3ec40a829490))
+* **workflows:** persist numeric change thresholds ([#199](https://github.com/edge-studio-technology/edge-studio/issues/199)) ([28b98e3](https://github.com/edge-studio-technology/edge-studio/commit/28b98e31d9ba5a26a8009267e77d062497ef0183))
+* **workflows:** preserve recorded run diagnostics ([#200](https://github.com/edge-studio-technology/edge-studio/issues/200)) ([eed4c0f](https://github.com/edge-studio-technology/edge-studio/commit/eed4c0fd3e511d4722bcd78ddba4c8188d5262cb))
+
+## [0.45.1](https://github.com/edge-studio-technology/edge-studio/compare/v0.45.0...v0.45.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **uninstall:** restore confirmation for piped commands ([#192](https://github.com/edge-studio-technology/edge-studio/issues/192)) ([8246640](https://github.com/edge-studio-technology/edge-studio/commit/8246640a8e977a3a9ad12a7d34731ec2ace38f4b))
+
 ## [0.45.0](https://github.com/edge-studio-technology/edge-studio/compare/v0.44.0...v0.45.0) (2026-11-17)
 
 
