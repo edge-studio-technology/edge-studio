@@ -328,13 +328,14 @@ describe("quests proxy", () => {
 });
 
 // #1380: a quest delivery. The publisher's file is fingerprinted (SHA3-256), counted per device from its own rows,
-// and its manifest signed by this node's Maxima key exactly as the marketplace checks it (src/domain/quest.ts there).
+// and its manifest signed by this node's managed Minima key exactly as the marketplace checks it (src/domain/quest.ts there).
 describe("quest delivery", () => {
   const NDJSON = '{"device_id":"dev-b","t":1}\n{"device_id":"dev-a","t":2}\n{"device_id":"dev-a","t":3}\n';
   const sha3 = (text: string) => crypto.createHash("sha3-256").update(text).digest("hex") as string;
   function nodeAndMarket(sign: unknown = { status: true, response: { signature: "0x5160" } }) {
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (url.includes("maxsign")) return reply(200, sign);
+      if (url.endsWith("/keys")) return reply(200, { status: true, response: { keys: [{ publickey: "0xAABB" }] } });
+      if (url.includes("sign%20") || decodeURIComponent(url).includes("/sign ")) return reply(200, sign);
       if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
       if (url.endsWith("/api/quests/Q1/submissions")) return reply(201, { id: "SUB1", status: "submitted" });
       return reply(404, {});
@@ -348,8 +349,8 @@ describe("quest delivery", () => {
     const fingerprint = sha3(NDJSON);
     const counts = { "dev-a": 2, "dev-b": 1 };
     const text = `edge-marketplace-quest-manifest:${JSON.stringify({ questId: "Q1", questVersion: 2, slot: 2, fingerprint, counts })}`;
-    const signCall = fetchMock.mock.calls.map(([url]) => decodeURIComponent(String(url))).find((url) => url.includes("maxsign"))!;
-    assert.ok(signCall.endsWith(`maxsign data:0x${Buffer.from(text, "utf8").toString("hex").toUpperCase()}`));
+    const signCall = fetchMock.mock.calls.map(([url]) => decodeURIComponent(String(url))).find((url) => url.includes("/sign "))!;
+    assert.ok(signCall.endsWith(`sign publickey:0xAABB data:0x${Buffer.from(text, "utf8").toString("hex").toUpperCase()}`));
     assert.deepEqual(lastCall().body, { slot: 2, questVersion: 2, sourceId: "SRC-V", fingerprint, manifest: { counts, signature: "0x5160" } });
     assert.equal(response.body.submissionId, "SUB1");
     assert.deepEqual(response.body.counts, counts);
@@ -360,7 +361,8 @@ describe("quest delivery", () => {
     // Review: the same bytes submitted again for that slot are refused by the marketplace; the file the first,
     // live delivery serves must survive that failure.
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (url.includes("maxsign")) return reply(200, { status: true, response: { signature: "0x5160" } });
+      if (url.endsWith("/keys")) return reply(200, { status: true, response: { keys: [{ publickey: "0xAABB" }] } });
+      if (url.includes("sign%20") || decodeURIComponent(url).includes("/sign ")) return reply(200, { status: true, response: { signature: "0x5160" } });
       if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
       return reply(409, { error: "already_submitted" });
     });
@@ -373,7 +375,8 @@ describe("quest delivery", () => {
   it("after a lost answer, retrying the same file recovers: the submission's id and the kept file's entry come back", async () => {
     let lost = true;
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (url.includes("maxsign")) return reply(200, { status: true, response: { signature: "0x5160" } });
+      if (url.endsWith("/keys")) return reply(200, { status: true, response: { keys: [{ publickey: "0xAABB" }] } });
+      if (url.includes("sign%20") || decodeURIComponent(url).includes("/sign ")) return reply(200, { status: true, response: { signature: "0x5160" } });
       if (url.endsWith("/api/quests/Q1") && (!init?.method || init.method === "GET")) return reply(200, { id: "Q1", version: 2 });
       if (lost) { lost = false; throw new TypeError("fetch failed"); } // saved by the marketplace, answer lost
       return reply(409, { error: "already_submitted", id: "SUB7" });
@@ -419,7 +422,7 @@ describe("quest delivery", () => {
     const bad = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from('{"t":1}\n'), "x.ndjson");
     assert.equal(bad.status, 422);
     assert.equal(fetchMock.mock.calls.length, 0);
-    nodeAndMarket({ status: false, error: "Maxima not running" });
+    nodeAndMarket({ status: false, error: "Signing failed" });
     const unsigned = await request(server).post("/api/marketplace/quests/Q1/slots/2/deliveries").field("sourceId", "SRC-V").attach("file", Buffer.from(NDJSON), "readings.ndjson");
     assert.equal(unsigned.status, 503);
     assert.equal(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/submissions")), false);

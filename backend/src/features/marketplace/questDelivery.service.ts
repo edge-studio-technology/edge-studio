@@ -4,9 +4,9 @@
 // delivery service:
 //   1. keeps the file under DATA_DIR/marketplace-deliveries, where the delivery service can serve it;
 //   2. fingerprints it (SHA3-256 of its bytes) and counts its rows per device, from the file itself;
-//   3. signs the quest manifest (quest, version, slot, fingerprint, counts) with this node's Maxima key, the key the
+//   3. signs the quest manifest (quest, version, slot, fingerprint, counts) with this node's managed signing key, the key the
 //      marketplace knows as the source's attesting node (marketplace.service.ts readNodePublicKey);
-//   4. submits it to the marketplace, which checks the signature with maxverify before accepting the submission.
+//   4. submits it to the marketplace, which checks the signature with verify before accepting the submission.
 // The buyer then sees the signed counts before accepting, and can check the file's fingerprint after download.
 // The delivery service serves an accepted delivery as the file entry "quest-<submission id>" (its DELIVERY_CONFIG).
 import fs from "node:fs";
@@ -16,6 +16,7 @@ import { sha3HashHex } from "../../shared/crypto.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import {
   marketplaceRequest,
+  readNodePublicKey,
   type MarketplaceActor,
   type MarketplaceResult,
 } from "./marketplace.service.js";
@@ -135,8 +136,10 @@ export async function submitQuestDelivery(
   });
   let signature: unknown;
   try {
+    const publicKey = await readNodePublicKey();
+    if (!publicKey) throw new Error("The node has no managed signing key");
     const signed = await runMinimaPathCommand(
-      `maxsign data:0x${Buffer.from(text, "utf8").toString("hex").toUpperCase()}`,
+      `sign publickey:${publicKey} data:0x${Buffer.from(text, "utf8").toString("hex").toUpperCase()}`,
     );
     const body = signed.body as { status?: unknown; response?: { signature?: unknown } } | null;
     signature = body?.status === true ? body.response?.signature : undefined;
@@ -146,7 +149,7 @@ export async function submitQuestDelivery(
   if (typeof signature !== "string" || !signature)
     return {
       status: 503,
-      error: "This node could not sign the delivery (is Maxima running?). Nothing was submitted.",
+      error: "This node could not sign the delivery with its managed Minima key. Nothing was submitted.",
     };
 
   // Kept before submitting, so an accepted delivery always has its file; removed again if the submission fails.

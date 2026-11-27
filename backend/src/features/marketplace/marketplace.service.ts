@@ -76,12 +76,14 @@ export function isDeliveryAuthorized(header: string | undefined) {
 
 const isOutputTarget = (source: DataSourceRecord) => source.type.endsWith("-output") || source.type === "spi-display";
 
-/** The local node's Maxima public key: the key the marketplace shows as the attesting node. */
-async function readNodePublicKey() {
+/** The local node's first managed signing key: the key the marketplace shows as the attesting node. */
+export async function readNodePublicKey() {
   try {
-    const { body } = await runMinimaPathCommand("maxima");
-    const key = (body as { response?: { publickey?: unknown } } | null)?.response?.publickey;
-    return typeof key === "string" && key ? key : null;
+    const { body } = await runMinimaPathCommand("keys");
+    const keys = (body as { response?: { keys?: unknown } } | null)?.response?.keys;
+    if (!Array.isArray(keys)) return null;
+    const key = keys.find((item) => /^0x[0-9a-f]+$/i.test(String((item as { publickey?: unknown } | null)?.publickey ?? ""))) as { publickey: string } | undefined;
+    return key?.publickey ?? null;
   } catch {
     return null;
   }

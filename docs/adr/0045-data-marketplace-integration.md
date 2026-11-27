@@ -34,15 +34,16 @@ Edge Studio has a single local role, `admin`.
 - **Error mapping.** A marketplace that cannot be reached, or answers 5xx, becomes a 503
   `marketplace_unavailable`; a 4xx passes through with `errorCode: marketplace_<error>`, which also keeps a
   marketplace 401 from being read as an expired Edge Studio session.
-- **Source push.** Input data sources (not `*-output` targets) are pushed with `PUT /api/integration/sources/:id`
+- **Source push.** Input data sources (not `*-output` or `spi-display` targets) are pushed with `PUT /api/integration/sources/:id`
   at start-up and when a source is created/edited/deleted or one of its Integritas proofs becomes ready; deleted
   sources and output targets are removed with `DELETE` (404 counts as done). Changes within one second share a
   push; unreachable or 5xx pushes retry every 60 seconds. Pushes act as user `edge-studio`, role `owner`.
 - **Proof fields come from stored data only.** `attestations` is the number of ready Integritas proofs linked to
   the source's reads and `verified` is `attestations > 0`. The newest ready proof gives
   `reference: integritas:uid:<proof uid>`, `fingerprint` (its SHA3-256 hash) and `attestedAt` (when it was
-  stamped). `nodePublicKey` is the local Minima node's Maxima public key (`maxima` RPC), the installation's node
-  identity. No `coverage` is sent because Edge Studio does not record one. A source without a ready proof is
+  stamped). `nodePublicKey` is the first public key returned by the local Minima Core node's `keys` RPC, the
+  installation's signing identity. Quest delivery manifests are signed with that same key through `sign` and the
+  marketplace verifies them through `verify`. No `coverage` is sent because Edge Studio does not record one. A source without a ready proof is
   pushed with `proof: null`. If a proof exists but the node key cannot be read, the push is retried rather than
   sent without a proof, so a node hiccup never downgrades a published source.
 - **Delivery relay.** The delivery service calls `PUT /api/marketplace/delivery/sources/:id/address` and
@@ -65,6 +66,9 @@ Edge Studio has a single local role, `admin`.
   an inbound route on a LAN appliance.
 - **Push the Integritas proof `address` or `root` as the node key.** Rejected: neither is a node public key, and
   the marketplace labels the field as the attesting node's key.
+- **Use the legacy `maxima`, `maxsign` and `maxverify` RPCs.** Replaced: the deployed `minimaglobal/minimacore`
+  node returns `Command not found` for those commands. Its managed `keys`, `sign` and `verify` RPCs provide the
+  required persistent public identity and matching signature verification without a separate private key store.
 - **Reuse the installation key for the delivery service.** Rejected: a second program would then hold the key
   that lists, prices and publishes the seller's data.
 
@@ -78,8 +82,11 @@ Edge Studio has a single local role, `admin`.
   source change, new ready proof or restart.
 - A changed key or URL needs a backend restart, like other `.env` values.
 - A changed private CA certificate or path also needs the backend container to be recreated.
+- The signing identity follows the first managed key returned by the Minima node. Restoring or replacing the node
+  must preserve its wallet keys for existing source evidence and quest signatures to retain the same identity.
 
 ## History
 
 - 2026-11-18: Initial decision.
 - 2026-11-27: Added the explicit public-CA trust path for private test deployments.
+- 2026-11-27: Replaced removed Maxima signing RPCs with Minima Core's managed `keys`/`sign`/`verify` flow.

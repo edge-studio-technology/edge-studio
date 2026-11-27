@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
   rpc.runMinimaPathCommand.mockReset();
-  rpc.runMinimaPathCommand.mockResolvedValue({ ok: true, status: 200, command: "maxima", body: { status: true, response: { publickey: NODE_KEY } } });
+  rpc.runMinimaPathCommand.mockResolvedValue({ ok: true, status: 200, command: "keys", body: { status: true, response: { keys: [{ publickey: NODE_KEY }] } } });
   env.marketplaceUrl = "https://market.example";
   env.marketplaceInstallationKey = KEY;
   env.marketplaceDeliverySecret = "delivery-secret-at-least-32-characters";
@@ -252,7 +252,7 @@ describe("review: sync ordering", () => {
     const source = sourceWithProofs("Short-lived", ["uid-1"]);
     rpc.runMinimaPathCommand.mockImplementationOnce(async () => {
       dataSources.deleteDataSource(source.id); // the admin deletes it while the node is being asked
-      return { ok: true, status: 200, command: "maxima", body: { status: true, response: { publickey: NODE_KEY } } };
+      return { ok: true, status: 200, command: "keys", body: { status: true, response: { keys: [{ publickey: NODE_KEY }] } } };
     });
     service.queueMarketplaceSourceSync(source.id);
     await service.flushMarketplaceSync();
@@ -268,7 +268,7 @@ describe("review: sync ordering", () => {
     const slowNode = new Promise<void>((r) => { release = r; });
     rpc.runMinimaPathCommand.mockImplementationOnce(async () => {
       await slowNode;
-      return { ok: true, status: 200, command: "maxima", body: { status: true, response: { publickey: NODE_KEY } } };
+      return { ok: true, status: 200, command: "keys", body: { status: true, response: { keys: [{ publickey: NODE_KEY }] } } };
     });
     service.queueMarketplaceSourceSync(source.id);
     const first = service.flushMarketplaceSync();
