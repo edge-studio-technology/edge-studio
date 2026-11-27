@@ -156,28 +156,35 @@ describe("sourcePushBody", () => {
 });
 
 describe("source sync", () => {
-  it("pushes every input source at start-up and skips output targets", async () => {
+  it("pushes every input source at start-up and removes output targets", async () => {
     const before = new Set(dataSources.listDataSources().map((s) => s.id));
     const input = sourceWithProofs("Start-up", ["uid-s"]);
-    dataSources.createDataSource({ name: "LED", type: "gpio-output", config: { pin: 17 } });
+    const led = dataSources.createDataSource({ name: "LED", type: "gpio-output", config: { pin: 17 } });
+    const display = dataSources.createDataSource({ name: "Display", type: "spi-display", config: { model: "pim576", rotation: 0 } });
     fetchMock.mockResolvedValue(reply(200));
 
     service.startMarketplaceSourceSync();
     await service.flushMarketplaceSync();
 
-    const puts = calls().filter((c) => !before.has(decodeURIComponent(c.url.split("/").pop()!)));
-    assert.deepEqual(puts.map((c) => [c.method, c.url]), [["PUT", `https://market.example/api/integration/sources/${input.id}`]]);
-    assert.equal(puts[0].headers["X-Edge-Studio-User"], "edge-studio");
-    assert.equal(puts[0].headers["X-Edge-Studio-Role"], "owner");
-    assert.equal(puts[0].body.proof.nodePublicKey, NODE_KEY);
+    const synced = calls().filter((c) => !before.has(decodeURIComponent(c.url.split("/").pop()!)));
+    assert.deepEqual(new Map(synced.map((c) => [c.url, c.method])), new Map([
+      [`https://market.example/api/integration/sources/${input.id}`, "PUT"],
+      [`https://market.example/api/integration/sources/${led.id}`, "DELETE"],
+      [`https://market.example/api/integration/sources/${display.id}`, "DELETE"],
+    ]));
+    const pushed = synced.find((c) => c.method === "PUT")!;
+    assert.equal(pushed.headers["X-Edge-Studio-User"], "edge-studio");
+    assert.equal(pushed.headers["X-Edge-Studio-Role"], "owner");
+    assert.equal(pushed.body.proof.nodePublicKey, NODE_KEY);
   });
 
   it("removes deleted sources and output targets, treating 404 as already gone", async () => {
     const output = dataSources.createDataSource({ name: "Target", type: "http-output", config: { url: "https://hook.example" } });
+    const display = dataSources.createDataSource({ name: "Display target", type: "spi-display", config: { model: "pim576", rotation: 0 } });
     fetchMock.mockResolvedValue(reply(404, { error: "not_found" }));
-    service.queueMarketplaceSourceSync("deleted-id", output.id);
+    service.queueMarketplaceSourceSync("deleted-id", output.id, display.id);
     await service.flushMarketplaceSync();
-    assert.deepEqual(calls().map((c) => c.method), ["DELETE", "DELETE"]);
+    assert.deepEqual(calls().map((c) => c.method), ["DELETE", "DELETE", "DELETE"]);
 
     fetchMock.mockClear();
     await service.flushMarketplaceSync();

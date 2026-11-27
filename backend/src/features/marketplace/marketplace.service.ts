@@ -74,7 +74,7 @@ export function isDeliveryAuthorized(header: string | undefined) {
 
 // ---- Source push: the marketplace never reads Edge Studio, so every change to a source or its proofs is pushed.
 
-const isOutputTarget = (source: DataSourceRecord) => source.type.endsWith("-output");
+const isOutputTarget = (source: DataSourceRecord) => source.type.endsWith("-output") || source.type === "spi-display";
 
 /** The local node's Maxima public key: the key the marketplace shows as the attesting node. */
 async function readNodePublicKey() {
@@ -169,7 +169,8 @@ export async function flushMarketplaceSync() {
 }
 
 export function startMarketplaceSourceSync() {
-  queueMarketplaceSourceSync(...listDataSources().filter((source) => !isOutputTarget(source)).map((source) => source.id));
+  // Queue outputs too so an older build that pushed one removes that stale marketplace record on restart.
+  queueMarketplaceSourceSync(...listDataSources().map((source) => source.id));
 }
 
 export function stopMarketplaceSourceSync() {
