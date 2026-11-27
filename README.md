@@ -603,6 +603,10 @@ The CLI does not send session cookies in V1. Operational CLI commands that call 
    MARKETPLACE_DELIVERY_SECRET=<openssl rand -hex 32>
    ```
 
+   A local staging marketplace may use a private test CA. Put its public root certificate in the installation's
+   data directory and set `MARKETPLACE_CA_CERT_PATH=/data/marketplace-ca.crt`. Leave this empty for a marketplace
+   with publicly trusted HTTPS; never copy a CA private key into Edge Studio.
+
 2. Recreate the backend container (`docker compose up -d backend`) so it reads the new values. A reinstall keeps them. `MARKETPLACE_URL` must be `https`; plain `http` is accepted only for `localhost`/`127.0.0.1` during development.
 3. Open **Marketplace**. The page says whether the marketplace is configured and where it points.
 

@@ -20,6 +20,9 @@ Edge Studio has a single local role, `admin`.
   (ADR 0041: issued credentials and service endpoints stay out of SQLite runtime settings). Only the backend reads
   them; the browser gets `{ configured, url, role }` and nothing else. The URL must be `https`, or `http` on
   `localhost`/`127.0.0.1` for development, because the key travels in a header.
+- **Private development CAs are explicit deployment configuration.** When the marketplace uses a private CA,
+  `MARKETPLACE_CA_CERT_PATH` names a mounted public CA certificate and is passed to Node through
+  `NODE_EXTRA_CA_CERTS`. Edge Studio never receives the CA private key, and TLS verification is not disabled.
 - **Deployment-config egress.** The marketplace URL is not API-writable, so calls use `fetchJsonWithTimeout()`
   like Integritas and feedback, not the operator-URL egress policy (ADR 0014).
 - **Role mapping.** `admin` maps to `owner`; any other role maps to `viewer`. The frontend shows create/publish
@@ -54,6 +57,8 @@ Edge Studio has a single local role, `admin`.
 - **Store the key in SQLite through the settings/secrets service with a Settings form.** Deferred: the key is
   issued per installation by the operator, like helper tokens, and a form adds a secret-entry surface no case
   requires.
+- **Disable TLS verification for a private development CA.** Rejected: mounting the public CA certificate keeps
+  normal hostname and certificate validation without broadening trust to an unpublished private key.
 - **A generic `/api/marketplace/*` pass-through.** Rejected: it would expose whatever the marketplace adds later,
   including payout-wallet changes, under Edge Studio's key.
 - **Let the marketplace pull sources from Edge Studio.** Rejected by the marketplace contract; it would also need
@@ -72,7 +77,9 @@ Edge Studio has a single local role, `admin`.
 - Deleting or archiving proof history does not trigger a push; the attestation count catches up on the next
   source change, new ready proof or restart.
 - A changed key or URL needs a backend restart, like other `.env` values.
+- A changed private CA certificate or path also needs the backend container to be recreated.
 
 ## History
 
 - 2026-11-18: Initial decision.
+- 2026-11-27: Added the explicit public-CA trust path for private test deployments.
