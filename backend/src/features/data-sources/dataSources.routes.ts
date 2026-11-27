@@ -8,6 +8,7 @@ import { getEnabledAutomationWorkflowForDataSource, listAutomationWorkflowsUsing
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
 import { createDataSource, deleteDataSource, findWebhookDataSource, getDataSource, listDataSources, updateDataSource, updateDataSourceReadResult } from "./dataSources.repository.js";
 import { syncMqttDataSources } from "./mqttIngestion.service.js";
+import { queueMarketplaceSourceSync } from "../marketplace/marketplace.service.js";
 import { getGpioInputCapability, syncGpioDataSources } from "./gpioIngestion.service.js";
 import { pulseGpioOutput } from "./gpioOutput.service.js";
 import { publishMqttOutput } from "./mqttOutput.service.js";
@@ -75,6 +76,7 @@ dataSourcesRouter.post("/", requireRole("admin"), async (req, res) => {
     const record = createDataSource({ name, type, description, config });
     syncMqttDataSources();
     syncGpioDataSources();
+    queueMarketplaceSourceSync(record.id);
     return res.json({ item: serializeDataSource(record) });
   } catch (error) {
     return badRequest(res, error instanceof Error ? error.message : "Invalid data source", { type });
@@ -89,6 +91,7 @@ dataSourcesRouter.delete("/:id", requireRole("admin"), (req, res) => {
   deleteDataSource(req.params.id);
   syncMqttDataSources();
   syncGpioDataSources();
+  queueMarketplaceSourceSync(req.params.id);
   res.json({ deleted: true });
 });
 
@@ -109,6 +112,7 @@ dataSourcesRouter.patch("/:id", requireRole("admin"), async (req, res) => {
     const record = updateDataSource(req.params.id, { name, type, description, config });
     syncMqttDataSources();
     syncGpioDataSources();
+    queueMarketplaceSourceSync(req.params.id);
     return res.json({ item: serializeDataSource(record!) });
   } catch (error) {
     return badRequest(res, error instanceof Error ? error.message : "Invalid data source", { type, sourceId: existing.id });

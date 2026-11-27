@@ -89,3 +89,32 @@ export function linkDataSourceReadProof(id: string, proofId: string) {
   db.prepare("UPDATE data_source_reads SET integritas_proof_id = ? WHERE id = ?").run(proofId, id);
   return getDataSourceRead(id)!;
 }
+
+/**
+ * A source's readings in the order they were recorded, for the marketplace delivery service's live stream (FR-17).
+ * after: undefined = start from now (nothing yet; the cursor is the newest read, or "" when there is none);
+ * "" = from the first read; an id = after that read. Failed reads move the cursor but are not readings.
+ */
+export function listSourceReadingsAfter(dataSourceId: string, after: string | undefined, limit = 500) {
+  // An unknown cursor (its read was removed by retention, or never existed) also starts from now: replaying the
+  // source's whole remaining history as new readings would be wrong (review 2026-11-19).
+  const known = after !== undefined && (after === "" || db.prepare("SELECT 1 FROM data_source_reads WHERE id = ? AND data_source_id = ?").get(after, dataSourceId));
+  if (!known) {
+    const newest = db.prepare("SELECT id FROM data_source_reads WHERE data_source_id = ? ORDER BY rowid DESC LIMIT 1").get(dataSourceId) as { id: string } | undefined;
+    return { reads: [], cursor: newest?.id ?? "" };
+  }
+  const rows = db
+    .prepare(
+      `SELECT r.id, r.created_at, r.status, r.hash, r.preview_json, p.proof_uid FROM data_source_reads r
+       LEFT JOIN integritas_proofs p ON p.id = r.integritas_proof_id
+       WHERE r.data_source_id = ? AND r.rowid > coalesce((SELECT rowid FROM data_source_reads WHERE id = ?), 0)
+       ORDER BY r.rowid LIMIT ?`
+    )
+    .all(dataSourceId, after, limit) as { id: string; created_at: string; status: string; hash: string | null; preview_json: string | null; proof_uid: string | null }[];
+  return {
+    reads: rows
+      .filter((r) => r.status === "success")
+      .map((r) => ({ id: r.id, createdAt: r.created_at, data: r.preview_json ? (JSON.parse(r.preview_json) as unknown) : null, hash: r.hash, proof: r.proof_uid ? `integritas:uid:${r.proof_uid}` : null })),
+    cursor: rows.at(-1)?.id ?? after,
+  };
+}

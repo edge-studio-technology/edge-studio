@@ -72,6 +72,23 @@ Controls (V1):
 
 Status: Mitigated.
 
+## Data Marketplace Credentials
+
+Risk: `MARKETPLACE_INSTALLATION_KEY` lets its holder list, edit, publish and withdraw the seller's listings and push sources. `MARKETPLACE_DELIVERY_SECRET` lets its holder report heartbeats and change the delivery address buyers are sent to.
+
+Impact: Listing tampering, misleading live status, or buyers sent to an attacker-chosen `https` address (the marketplace accepts only public `https` origins).
+
+Controls (V1):
+
+- Both values are `.env` deployment configuration read only by the backend; neither is returned to the browser or written to logs.
+- Marketplace calls use a fixed route allowlist; payout-wallet changes are not exposed. Listing mutations require an admin session.
+- The delivery relay compares the secret in constant time and refuses every call while it is unset. The delivery service never holds the installation key.
+- The operator can rotate or revoke the installation key on the marketplace.
+
+Residual gap: the delivery relay is not rate-limited (a 256-bit secret is not brute-forceable, but calls still reach the marketplace); `.env` file permissions are not tightened by the installer; every Edge Studio user acts as marketplace `owner` because `admin` is the only local role. See [ADR 0045](../adr/0045-data-marketplace-integration.md).
+
+Status: Mitigated for V1 single-admin use.
+
 ## Session Lifecycle On Credential Change
 
 Risk: A stolen or shared session cookie survived the credential change made to lock the attacker

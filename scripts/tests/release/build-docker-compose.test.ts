@@ -48,6 +48,10 @@ describe("build-docker-compose.mjs", () => {
     );
     assert.match(compose, /HOST_AGENT_URL: \$\{HOST_AGENT_URL:-http:\/\/host\.docker\.internal:38182\}/);
     assert.match(compose, /HOST_AGENT_TOKEN: \$\{HOST_AGENT_TOKEN:-\}/);
+    assert.match(compose, /MARKETPLACE_INSTALLATION_KEY: \$\{MARKETPLACE_INSTALLATION_KEY:-\}/);
+    assert.match(compose, /NODE_EXTRA_CA_CERTS: \$\{MARKETPLACE_CA_CERT_PATH:-\}/);
+    assert.match(envExample, /^MARKETPLACE_DELIVERY_SECRET=$/m);
+    assert.match(envExample, /^MARKETPLACE_CA_CERT_PATH=$/m);
     assert.match(envExample, /MANIFEST_URL=https:\/\/edgestudio\.technology\/manifest\/development\/manifest\.json/);
     assert.match(envExample, /HOST_AGENT_URL=http:\/\/host\.docker\.internal:38182/);
     assert.match(envExample, /^EDGE_STUDIO_DOCKER_SUBNET=172\.30\.0\.0\/24$/m);

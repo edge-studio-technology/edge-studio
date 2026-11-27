@@ -7,6 +7,7 @@ import { sha3HashHex } from "../../shared/crypto.js";
 import { parseResponseBody } from "../../shared/http.js";
 import { getDataSourceReadByProofId } from "../data-reads/dataReads.repository.js";
 import { getIntegritasApiKey, integritasApiKeySource } from "../settings/secrets.service.js";
+import { queueMarketplaceSourceSync } from "../marketplace/marketplace.service.js";
 import { updateProofStatus, type IntegritasProofRecord } from "./integritas.repository.js";
 import type { IntegritasApiFailure, IntegritasErrorCode, IntegritasOperation, IntegritasStatusItem } from "./integritas.types.js";
 
@@ -76,12 +77,16 @@ export function applyPollResultToRecord(recordId: string, proofUid: string, resu
   const payload = result.proofPayloads.find((item) => normalizeProofUid(item.uid) === normalizedUid)?.proofPayload ?? null;
   const proofStatus = payload ? "ready" : statusItem?.error || statusItem?.status === false ? "failed" : "pending";
 
-  return updateProofStatus(recordId, {
+  const record = updateProofStatus(recordId, {
     proofStatus,
     proofPayload: payload ?? undefined,
     statusResponse: result,
     proofError: statusItem?.error ?? null
   });
+  // A new ready proof changes the source's attestation count and latest proof on the marketplace.
+  const sourceId = proofStatus === "ready" ? getDataSourceReadByProofId(recordId)?.data_source_id : null;
+  if (sourceId) queueMarketplaceSourceSync(sourceId);
+  return record;
 }
 
 function sleep(ms: number) {

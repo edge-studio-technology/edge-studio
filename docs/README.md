@@ -82,6 +82,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0042](./adr/0042-separate-node-readiness-from-resource-telemetry.md) | Current node readiness is independent of shared resource telemetry; bounded read snapshots retain navigation responsiveness |
 | [0043](./adr/0043-license-edge-studio-under-mit.md) | Project code/docs and source contributions use MIT; third-party licenses remain applicable |
 | [0044](./adr/0044-time-limit-the-development-picomatch-audit-exception.md) | One development-only picomatch advisory exception, version-bounded and expiring 2026-12-02; production and unrelated findings still block |
+| [0045](./adr/0045-data-marketplace-integration.md) | Data Marketplace: backend-held installation key, admin as owner, fixed route allowlist, source/proof push, delivery-service relay |
 
 ### Retired ADRs
 

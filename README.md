@@ -249,6 +249,9 @@ INTEGRITAS_POLL_INTERVAL_SECONDS=30
 INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
 INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS=5
 INTEGRITAS_PORTAL_URL=
+MARKETPLACE_URL=
+MARKETPLACE_INSTALLATION_KEY=
+MARKETPLACE_DELIVERY_SECRET=
 COOKIE_SECURE=true
 # Legacy one-time seeds; manage session limits in Settings -> Security afterwards.
 # SESSION_MAX_AGE_DAYS=7
@@ -587,6 +590,39 @@ If the Integritas API key is missing or the hosted endpoint is unavailable, the 
 
 The CLI does not send session cookies in V1. Operational CLI commands that call protected APIs return `401 Unauthorized` until a future CLI auth story is added. Use the browser UI for authenticated operations.
 
+## Data Marketplace
+
+**Marketplace** in the sidebar connects this installation to the Edge Studio Data Marketplace, a separate service where data from Integritas-verified devices is sold. It is off until configured.
+
+1. Ask the marketplace operator for this installation's key (`esk_...`). Set it with the marketplace address in `.env`:
+
+   ```env
+   MARKETPLACE_URL=https://marketplace.example
+   MARKETPLACE_INSTALLATION_KEY=esk_...
+   # Only when you run the local delivery service (below):
+   MARKETPLACE_DELIVERY_SECRET=<openssl rand -hex 32>
+   ```
+
+   A local staging marketplace may use a private test CA. Put its public root certificate in the installation's
+   data directory and set `MARKETPLACE_CA_CERT_PATH=/data/marketplace-ca.crt`. Leave this empty for a marketplace
+   with publicly trusted HTTPS; never copy a CA private key into Edge Studio.
+
+2. Recreate the backend container (`docker compose up -d backend`) so it reads the new values. A reinstall keeps them. `MARKETPLACE_URL` must be `https`; plain `http` is accepted only for `localhost`/`127.0.0.1` during development.
+3. Open **Marketplace**. The page says whether the marketplace is configured and where it points.
+
+The page has two tabs:
+
+- **My listings** lists your listings on the marketplace. With none yet, it explains how to create one and opens the listing wizard. The wizard offers exactly two product types: **Dataset/File** (one-off purchase, seller-hosted download) and **Live Stream** (monthly subscription, seller-hosted stream); billing and delivery method follow the type. Drafts are published, paused and unpublished from the list. Only your own sources are offered, and only verified ones can be chosen. The payout wallet is changed on the marketplace website, never from Edge Studio.
+- **Catalogue** searches all published listings by words, category and type. **Buy on marketplace** opens the listing on the marketplace website in a new tab, so purchases use the same checkout and entitlements as any buyer. **Details** fetches the listing fresh, with the seller's live delivery status.
+
+If the marketplace cannot be reached, the page shows "Marketplace service unavailable" (listings) or "Marketplace unavailable" (catalogue) with **Retry**; earlier results are hidden rather than shown as live. The rest of Edge Studio is unaffected.
+
+**What leaves the Pi.** The backend pushes each input device (not output targets) to the marketplace at start-up and whenever a device is added, edited or deleted, or one of its Integritas proofs becomes ready: the device's ID and name, whether it is verified, its number of ready proofs and its newest ready proof (proof reference `integritas:uid:<uid>`, the SHA3-256 data fingerprint, the time it was stamped and the Minima node's Maxima public key). Device configuration, readings and credentials are never sent. Deleted devices are removed from the marketplace. If the marketplace is unreachable, pushes retry every minute while the backend runs.
+
+**Roles.** Edge Studio has one local role, `admin`, which acts on the marketplace as the installation's `owner` (may create and publish listings). The marketplace's read-only `viewer` role is supported by the page, but no Edge Studio role maps to it yet, and the marketplace's delegated `publisher` role is not used.
+
+**Local delivery service.** The publisher's delivery service (a separate program) reports to the marketplace through Edge Studio, because only Edge Studio holds the installation key. It calls Edge Studio's HTTPS address (the same one the browser uses, with its certificate) and authenticates with `Authorization: Bearer <MARKETPLACE_DELIVERY_SECRET>`. See [Backend API](#backend-api) for the two endpoints.
+
 ## CLI
 
 The browser UI and CLI both call the same backend API. The backend does not run arbitrary shell commands, and the CLI does not duplicate business logic.
@@ -905,6 +941,31 @@ The address book hides the pending destination and refreshes it every 30 seconds
 Empty/invalid/offline discovery keeps the local recipient pending and retries later. Completion remains durably uncertain until the RPC returns, including across a backend restart during replacement. If the RPC throws or times out, a pool still containing the old address is insufficient to confirm completion: the contact stays blocked until a different destination is verified or a subsequent replacement request completes and is verified. Replacing wallet files or calling RPC outside Edge Studio does not notify this mechanism. Reroll is out of scope.
 
 `POST /api/wallet/receive-address` samples a random default address from the wallet pool for the Receive QR view. It can differ from the stable This device destination; both belong to the wallet when verified.
+
+Data Marketplace (session required; listing create/edit/transition are admin-only):
+
+```http
+GET   /api/marketplace/status
+GET   /api/marketplace/publisher/sources
+GET   /api/marketplace/publisher/listings
+GET   /api/marketplace/publisher/earnings
+POST  /api/marketplace/publisher/listings
+PATCH /api/marketplace/publisher/listings/:id
+POST  /api/marketplace/publisher/listings/:id/transitions
+GET   /api/marketplace/catalogue?q=&category=&type=
+GET   /api/marketplace/catalogue/:id
+```
+
+`GET /api/marketplace/status` returns `{ configured, url, role }`; it never returns the installation key or delivery secret. The other routes call the marketplace route of the same name with the installation key, the signed-in user's ID and the mapped role (`admin` → `owner`). A transition forwards only `{ to }`. When the marketplace is not configured the backend answers `503` with `errorCode: "marketplace_not_configured"`; when it cannot be reached or answers 5xx, `503` with `errorCode: "marketplace_unavailable"`. Marketplace `401/403/404/409/422` answers pass through with their status, a readable `error`, `field` when the marketplace named one, and `errorCode: "marketplace_<marketplace error>"`.
+
+Data Marketplace delivery service (no session; `Authorization: Bearer <MARKETPLACE_DELIVERY_SECRET>`):
+
+```http
+PUT  /api/marketplace/delivery/sources/:id/address     { "address": "https://host[:port]" | null }
+POST /api/marketplace/delivery/sources/:id/heartbeat   { "lastDataAt"?: "<ISO time>", "intervalSeconds"?: <int> }
+```
+
+`:id` is the Edge Studio device ID, URL-encoded. The address change is forwarded to the marketplace's `PUT /api/integration/sources/:id/delivery` as `owner`; `null` clears it. The heartbeat is forwarded to `POST /api/integration/sources/:id/heartbeat` as `publisher`, with only `lastDataAt` and `intervalSeconds`. Both act as user `edge-studio`. A missing or wrong secret, or an unset `MARKETPLACE_DELIVERY_SECRET`, answers `401`; an address that is neither a string nor `null` answers `400`. Otherwise the answer follows the rules above: `2xx` when the marketplace accepted it, the marketplace's own `4xx` (for example `404` for an unknown device or `422` for an address that is not a public `https` origin), and `503` when the marketplace cannot be reached. The delivery service retries on its next beat.
 
 Integritas:
 

@@ -30,6 +30,7 @@ flowchart LR
 | Installation/runtime | `install.sh`, `docker-compose.yml`, `.env.example` | Opt-in hardware/helpers, persistent storage, networking and deployment config |
 | Updates | `update-agent/`, `scripts/release/` | Signed release delivery and runtime bundle/image production |
 | Private feedback | `backend/src/features/feedback/`, `frontend/src/features/feedback/` | Local/consented hosted feedback; never an automatic public-issue bridge |
+| Data Marketplace | `backend/src/features/marketplace/`, `frontend/src/features/marketplace/` | Backend-held installation key, listing/catalogue routes, source/proof push and delivery-service relay ([ADR 0045](../adr/0045-data-marketplace-integration.md)) |
 
 A **hardware capability** enables infrastructure such as the camera helper. A **configured device** is a saved instance with settings such as pin, sensor model or URL. A **workflow block** uses the device according to its role. Enabling hardware, saving a device and enabling a workflow are separate operations.
 
